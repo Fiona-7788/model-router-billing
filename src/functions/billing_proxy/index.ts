@@ -166,7 +166,8 @@ async function fetchAllBreakdownRows(
       { ...params, pageSize, page },
       "ModelRouterQueryBillingCostBreakdown"
     );
-    const rows = data?.data?.rows || [];
+    // breakdown API 返回结构：{ data: { items: [...], total: N } }
+    const rows = data?.data?.items || data?.data?.rows || [];
     allRows.push(...rows);
     const total = data?.data?.total || 0;
     if (allRows.length >= total || rows.length < pageSize) break;
