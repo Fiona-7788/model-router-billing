@@ -268,6 +268,12 @@ async function getCostOverview(ctx: any, params: any) {
   const todayYear = nowBeijing.getUTCFullYear();
   const todayMonth = nowBeijing.getUTCMonth(); // 0-11
   const todayDate = nowBeijing.getUTCDate(); // 1-31
+  
+  // 计算昨天的日期（年月日）
+  const yesterdayBeijing = new Date(nowBeijing.getTime() - 86400 * 1000);
+  const yesterdayYear = yesterdayBeijing.getUTCFullYear();
+  const yesterdayMonth = yesterdayBeijing.getUTCMonth();
+  const yesterdayDate = yesterdayBeijing.getUTCDate();
 
   // 并发获取 overview 指标和全部 breakdown 费用数据
   const [overviewData, allRows, parentMap] = await Promise.all([
@@ -297,6 +303,12 @@ async function getCostOverview(ctx: any, params: any) {
   let todayCost = 0;
   let todayCalls = 0;
   let todayTokens = 0;
+  
+  // 计算昨日费用、调用次数、Token
+  let yesterdayCost = 0;
+  let yesterdayCalls = 0;
+  let yesterdayTokens = 0;
+  
   for (const row of filteredRows) {
     const ts = row.summaryTime || row.timestamp;
     if (ts) {
@@ -317,12 +329,30 @@ async function getCostOverview(ctx: any, params: any) {
         todayCalls += vals?.total_calls || 0;
         todayTokens += (vals?.input_tokens || 0) + (vals?.output_tokens || 0);
       }
+      
+      // 如果年月日匹配昨天，则是昨天的数据
+      if (rowYear === yesterdayYear && rowMonth === yesterdayMonth && rowDay === yesterdayDate) {
+        yesterdayCost += row.payableAmount || 0;
+        
+        let vals = row.values;
+        if (typeof vals === "string") {
+          try { vals = JSON.parse(vals); } catch { vals = {}; }
+        }
+        yesterdayCalls += vals?.total_calls || 0;
+        yesterdayTokens += (vals?.input_tokens || 0) + (vals?.output_tokens || 0);
+      }
     }
   }
 
+  // 计算费用变化率
+  const costChangeRate = yesterdayCost > 0 ? (todayCost - yesterdayCost) / yesterdayCost : 0;
+  
   return {
     metrics,
     totalCost: todayCost, // 今日费用
+    currentPeriodCost: todayCost, // 当前周期费用（今日）
+    lastPeriodCost: yesterdayCost, // 上一周期费用（昨日）
+    costChangeRate, // 费用变化率
     totalCalls: todayCalls, // 今日调用次数
     totalTokens: todayTokens, // 今日 Token 消耗
     modelCount: metricMap.model_count || 0,

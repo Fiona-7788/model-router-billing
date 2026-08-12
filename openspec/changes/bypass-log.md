@@ -313,3 +313,59 @@
 - targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
 - followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
 - user: fengyujing
+## 2026-08-12T07:49:13.768Z
+
+- command: openxiangda runtime deploy
+- reason: Debug frontend model costs
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-12T07:53:59.327Z
+
+- command: openxiangda runtime deploy
+- reason: Deploy debug version for model cost list
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-12T07:54:37.289Z
+
+- command: openxiangda runtime deploy
+- reason: Deploy latest frontend with debug logs
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-12T07:54:48.491Z
+
+- command: openxiangda runtime deploy
+- reason: Deploy latest frontend with debug logs
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-12T07:55:13.697Z
+
+- command: openxiangda runtime deploy
+- reason: Deploy latest frontend
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-12T07:55:23.849Z
+
+- command: openxiangda runtime deploy
+- reason: Deploy latest frontend
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-12T07:55:33.582Z
+
+- command: openxiangda runtime deploy
+- reason: Deploy latest frontend
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-12T07:55:41.247Z
+
+- command: openxiangda runtime deploy
+- reason: Deploy latest frontend
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing

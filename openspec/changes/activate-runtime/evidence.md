@@ -57,3 +57,27 @@
 ## SDD Bypass
 
 - 2026-08-12T07:44:10.675Z openxiangda runtime deploy bypassed SDD gate: Debug frontend model cost list mapping
+
+## SDD Bypass
+
+- 2026-08-12T07:49:13.770Z openxiangda runtime deploy bypassed SDD gate: Debug frontend model costs
+
+## SDD Bypass
+
+- 2026-08-12T07:53:59.330Z openxiangda runtime deploy bypassed SDD gate: Deploy debug version for model cost list
+
+## SDD Bypass
+
+- 2026-08-12T07:54:37.291Z openxiangda runtime deploy bypassed SDD gate: Deploy latest frontend with debug logs
+
+## SDD Bypass
+
+- 2026-08-12T07:54:48.494Z openxiangda runtime deploy bypassed SDD gate: Deploy latest frontend with debug logs
+
+## SDD Bypass
+
+- 2026-08-12T07:55:13.700Z openxiangda runtime deploy bypassed SDD gate: Deploy latest frontend
+
+## SDD Bypass
+
+- 2026-08-12T07:55:23.852Z openxiangda runtime deploy bypassed SDD gate: Deploy latest frontend
