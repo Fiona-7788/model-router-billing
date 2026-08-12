@@ -1,0 +1,7 @@
+{
+  "id": "fix-api-signing-v3",
+  "title": "Fix AiContent API endpoint and ROA v1 signing v3",
+  "level": "L2",
+  "status": "active",
+  "createdAt": "2026-08-12T04:50:00.000Z"
+}

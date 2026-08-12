@@ -250,3 +250,38 @@
 - targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
 - followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
 - user: fengyujing
+## 2026-08-12T04:34:02.354Z
+
+- command: openxiangda resource publish
+- reason: Fix API endpoint from edu-aliyun to aicontent.aliyuncs.com and implement ROA v1 signing for real data access
+- targets: {"forms":[],"pages":[],"functions":["billing_proxy"],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-12T04:34:15.811Z
+
+- command: openxiangda resource publish
+- reason: Fix API endpoint from edu-aliyun to aicontent.aliyuncs.com and implement ROA v1 signing for real data access
+- targets: {"forms":[],"pages":[],"functions":["billing_proxy"],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-12T04:34:25.714Z
+
+- command: openxiangda resource publish
+- reason: Update function code with correct API endpoint and ROA v1 signing
+- targets: {"forms":[],"pages":[],"functions":["billing_proxy"],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-12T04:35:10.055Z
+
+- command: openxiangda runtime deploy
+- reason: Deploy frontend with updated API mappers for real data
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-12T04:35:39.780Z
+
+- command: openxiangda runtime deploy
+- reason: Rollback to deploy fixed API endpoint and signing
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing

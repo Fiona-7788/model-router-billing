@@ -197,7 +197,7 @@ async function getCostOverview(ctx: any, params: any) {
 /**
  * 获取费用趋势指标
  * API: GET /api/v1/modelRouter/open/billing/cost/trend
- * 支持按客户分组返回（用于前端堆叠柱状图）
+ * 按公司（parentId）分组返回（散户归到父级公司）
  */
 async function getCostTrend(ctx: any, params: any) {
   const now = Math.floor(Date.now() / 1000);
@@ -205,54 +205,65 @@ async function getCostTrend(ctx: any, params: any) {
   const endTime = params.endTime || now;
   const granularity = params.granularity || "daily";
   
-  // 获取客户列表，用于按客户分组趋势
-  const clients = await getClientList(ctx);
+  // 并发获取客户列表和父级映射
+  const [clients, parentMap] = await Promise.all([
+    getClientList(ctx),
+    buildClientParentMap(ctx),
+  ]);
   
-  // 并发获取每个客户的趋势数据
-  const clientTrends = await Promise.all(
-    clients.map(async (client: any) => {
-      try {
-        const data = await callModelRouterAPI(ctx, "/api/v1/modelRouter/open/billing/cost/trend", {
-          startTime,
-          endTime,
-          clientId: client.id,
-          granularity,
-        }, "ModelRouterQueryCostTrendMetrics");
-        
-        const points = data?.data?.points || [];
-        return {
-          clientName: client.name || `客户${client.id}`,
-          points,
-        };
-      } catch (error) {
-        console.error(`获取客户 ${client.name} 趋势失败:`, error);
-        return { clientName: client.name, points: [] };
-      }
-    })
-  );
+  // 分批并发获取趋势数据（每批 20 个，避免过多并发请求）
+  const BATCH_SIZE = 20;
+  const allTrends: Array<{ clientId: string; companyName: string; points: any[] }> = [];
   
-  // 转换为前端期望的格式: [{date, company, cost}]
-  // 趋势 API 返回 total_calls / total_tokens / avg_tokens，无费用数据
-  // 使用 total_calls 作为趋势指标
-  const result: Array<{date: string; company: string; cost: number}> = [];
+  for (let i = 0; i < clients.length; i += BATCH_SIZE) {
+    const batch = clients.slice(i, i + BATCH_SIZE);
+    const batchResults = await Promise.all(
+      batch.map(async (client: any) => {
+        try {
+          const data = await callModelRouterAPI(ctx, "/api/v1/modelRouter/open/billing/cost/trend", {
+            startTime,
+            endTime,
+            clientId: client.id,
+            granularity,
+          }, "ModelRouterQueryCostTrendMetrics");
+          
+          const points = data?.data?.points || [];
+          // 用父级公司名替代散户名
+          const parentInfo = parentMap.get(String(client.id));
+          const companyName = parentInfo?.parentName || client.name || `客户${client.id}`;
+          return { clientId: String(client.id), companyName, points };
+        } catch {
+          return { clientId: String(client.id), companyName: client.name, points: [] };
+        }
+      })
+    );
+    allTrends.push(...batchResults);
+  }
   
-  for (const { clientName, points } of clientTrends) {
+  // 按公司分组聚合趋势数据
+  // 同一公司下的多个散户，同一天的 calls 累加
+  const companyDayMap = new Map<string, { date: string; company: string; cost: number }>();
+  
+  for (const { companyName, points } of allTrends) {
     for (const point of points) {
       const ts = point.timestamp;
       const dateStr = new Date(ts * 1000).toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit" });
-      // values 可能是 JSON 字符串或对象
       let vals = point.values;
       if (typeof vals === "string") {
         try { vals = JSON.parse(vals); } catch { vals = {}; }
       }
       const calls = vals?.total_calls || 0;
       if (calls > 0) {
-        result.push({ date: dateStr, company: clientName, cost: calls });
+        const key = `${companyName}|${dateStr}`;
+        if (!companyDayMap.has(key)) {
+          companyDayMap.set(key, { date: dateStr, company: companyName, cost: 0 });
+        }
+        companyDayMap.get(key)!.cost += calls;
       }
     }
   }
   
-  return result;
+  return Array.from(companyDayMap.values());
 }
 
 /**
@@ -298,35 +309,140 @@ async function getClientList(ctx: any) {
 }
 
 /**
+ * 构建 clientId → parentId 映射，并推断父级公司名称
+ * API 只返回叶子节点(L3/L4)，父级节点(L1/L2)不在返回列表中
+ * 通过子节点名称模式推断父级公司名
+ */
+async function buildClientParentMap(ctx: any): Promise<Map<string, { parentId: string; parentName: string }>> {
+  const clients = await getClientList(ctx);
+  const map = new Map<string, { parentId: string; parentName: string }>();
+
+  // 按 parentId 分组，统计子节点名称模式
+  const parentChildren = new Map<string, string[]>();
+  for (const c of clients) {
+    const pid = String(c.parentId);
+    if (!parentChildren.has(pid)) parentChildren.set(pid, []);
+    parentChildren.get(pid)!.push(c.name || "");
+  }
+
+  // 推断父级名称
+  for (const [pid, names] of parentChildren) {
+    // 如果所有子节点名称都以相同前缀开头（如 "咪咕用户-"），用该前缀推断公司名
+    const knownCompanies: Record<string, string> = {
+      "9410": "咪咕数媒",
+      "20601": "咪咕数媒",
+      "9263": "咪咕数媒",
+      "10769": "咪咕数媒",
+      "8648": "咪咕数媒",
+      "20510": "咪咕数媒",
+    };
+
+    const parentName = knownCompanies[pid] || (() => {
+      // 检查子节点是否有共同前缀
+      if (names.length > 0 && names.every(n => n.includes("咪咕用户"))) {
+        return "咪咕数媒";
+      }
+      // 使用第一个非散户子节点名称，或回退到 "部门{parentId}"
+      const nonMigu = names.find(n => !n.includes("咪咕用户"));
+      return nonMigu || `部门${pid}`;
+    })();
+
+    for (const c of clients) {
+      if (String(c.parentId) === pid) {
+        map.set(String(c.id), { parentId: pid, parentName });
+      }
+    }
+  }
+
+  return map;
+}
+
+/**
+ * 获取公司级客户列表（散户归到父级公司）
+ */
+async function getCompanyList(ctx: any) {
+  const parentMap = await buildClientParentMap(ctx);
+  
+  // 从 parentMap 提取唯一的公司列表
+  const companySet = new Map<string, { id: string; name: string }>();
+  for (const [, info] of parentMap) {
+    if (!companySet.has(info.parentId)) {
+      companySet.set(info.parentId, { id: info.parentId, name: info.parentName });
+    }
+  }
+  
+  // 同时添加不在 parentMap 中的公司级节点（从 breakdown 数据中获取）
+  const now = Math.floor(Date.now() / 1000);
+  try {
+    const bdData = await callModelRouterAPI(ctx, "/api/v1/modelRouter/open/billing/cost/breakdown", {
+      startTime: now - 86400 * 30,
+      endTime: now,
+      granularity: "daily",
+      pageSize: 500,
+    }, "ModelRouterQueryBillingCostBreakdown");
+    
+    for (const row of (bdData?.data?.rows || [])) {
+      const clientId = String(row.clientId);
+      if (!parentMap.has(clientId) && !companySet.has(clientId)) {
+        companySet.set(clientId, { id: clientId, name: row.clientName || `客户${clientId}` });
+      }
+    }
+  } catch {
+    // 如果 breakdown 调用失败，只用 parentMap 中的公司
+  }
+  
+  return Array.from(companySet.values());
+}
+
+/**
  * 获取部门/公司费用汇总
- * 通过获取客户列表 + 每个客户的费用概览来构建
+ * 通过 breakdown 数据按公司（parentId）分组汇总
+ * 散户（如咪咕用户）归到父级公司名下
  */
 async function getCompanyCostSummary(ctx: any, params: any) {
   const now = Math.floor(Date.now() / 1000);
   const startTime = params.startTime || now - 86400 * 30;
   const endTime = params.endTime || now;
   
-  // 获取 breakdown 数据，按客户汇总费用
-  const data = await callModelRouterAPI(ctx, "/api/v1/modelRouter/open/billing/cost/breakdown", {
-    startTime,
-    endTime,
-    granularity: "daily",
-    pageSize: 500,
-  }, "ModelRouterQueryBillingCostBreakdown");
+  // 并发获取 breakdown 数据和客户-父级映射
+  const [data, parentMap] = await Promise.all([
+    callModelRouterAPI(ctx, "/api/v1/modelRouter/open/billing/cost/breakdown", {
+      startTime,
+      endTime,
+      granularity: "daily",
+      pageSize: 500,
+    }, "ModelRouterQueryBillingCostBreakdown"),
+    buildClientParentMap(ctx),
+  ]);
   
   const rows = data?.data?.rows || [];
   
-  // 按客户分组汇总
-  const clientMap = new Map<string, { companyId: string; companyName: string; totalCost: number; totalCalls: number; totalTokens: number }>();
+  // 按公司（parentId）分组汇总
+  // 如果 breakdown 的 clientId 在 parentMap 中，归到父级公司
+  // 否则直接用 clientId 作为公司（如南京仰格、贵州图辑等本身就是公司级）
+  const companyMap = new Map<string, { companyId: string; companyName: string; totalCost: number; totalCalls: number; totalTokens: number }>();
   
   for (const row of rows) {
     const clientId = String(row.clientId || "unknown");
-    const clientName = row.clientName || `客户${clientId}`;
+    const parentInfo = parentMap.get(clientId);
     
-    if (!clientMap.has(clientId)) {
-      clientMap.set(clientId, { companyId: clientId, companyName: clientName, totalCost: 0, totalCalls: 0, totalTokens: 0 });
+    // 确定公司 ID 和名称
+    let companyId: string;
+    let companyName: string;
+    if (parentInfo) {
+      // 散户归到父级公司
+      companyId = parentInfo.parentId;
+      companyName = parentInfo.parentName;
+    } else {
+      // 本身就是公司级节点
+      companyId = clientId;
+      companyName = row.clientName || `客户${clientId}`;
     }
-    const entry = clientMap.get(clientId)!;
+    
+    if (!companyMap.has(companyId)) {
+      companyMap.set(companyId, { companyId, companyName, totalCost: 0, totalCalls: 0, totalTokens: 0 });
+    }
+    const entry = companyMap.get(companyId)!;
     entry.totalCost += row.payableAmount || 0;
     
     // values 可能是 JSON 字符串
@@ -338,7 +454,7 @@ async function getCompanyCostSummary(ctx: any, params: any) {
     entry.totalTokens += (vals?.input_tokens || 0) + (vals?.output_tokens || 0);
   }
   
-  return Array.from(clientMap.values());
+  return Array.from(companyMap.values());
 }
 
 /**
@@ -407,7 +523,8 @@ export default async function(ctx: any) {
         result = await getCallSources(ctx, params);
         break;
       case "clientList":
-        result = await getClientList(ctx);
+        // 返回公司级列表（散户归到父级公司）
+        result = await getCompanyList(ctx);
         break;
       default:
         throw new Error(`未知的 action: ${action}。支持的 actions: billingCostTabs, costOverview, costTrend, modelCostList, companyCostSummary, callSources, clientList`);
