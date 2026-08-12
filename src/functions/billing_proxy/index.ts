@@ -276,20 +276,28 @@ async function getCostOverview(ctx: any, params: any) {
     if (m?.key) metricMap[m.key] = m.value ?? 0;
   }
 
-  // 过滤后汇总费用（只统计默认部门和咪咕正式，如果指定了 companyId/modelCategory 则进一步过滤）
+  // 过滤后汇总费用、调用次数、Token（只统计默认部门和咪咕正式，如果指定了 companyId/modelCategory 则进一步过滤）
   const filteredRows = filterByAllowedDepartments(allRows, parentMap, params.companyId, params.modelCategory);
   let totalCost = 0;
+  let totalCalls = 0;
+  let totalTokens = 0;
   for (const row of filteredRows) {
     totalCost += row.payableAmount || 0;
+    let vals = row.values;
+    if (typeof vals === "string") {
+      try { vals = JSON.parse(vals); } catch { vals = {}; }
+    }
+    totalCalls += vals?.total_calls || 0;
+    totalTokens += (vals?.input_tokens || 0) + (vals?.output_tokens || 0);
   }
 
   return {
     metrics,
     totalCost,
-    totalCalls: metricMap.total_calls || 0,
-    totalTokens: metricMap.total_tokens || 0,
+    totalCalls,
+    totalTokens,
     modelCount: metricMap.model_count || 0,
-    avgTokens: metricMap.avg_tokens || 0,
+    avgTokens: totalCalls > 0 ? Math.round(totalTokens / totalCalls) : 0,
   };
 }
 
