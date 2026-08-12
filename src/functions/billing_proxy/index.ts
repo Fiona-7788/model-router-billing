@@ -198,6 +198,7 @@ const MODEL_TYPE_TO_CATEGORY: Record<string, string> = {
   Chat: "大语言模型",
   ChatMultimodal: "大语言模型",
   Embedding: "大语言模型",
+  Rerank: "大语言模型",
   ASR: "语音模型",
   TTS: "语音模型",
   ImageGeneration: "图像生成",
