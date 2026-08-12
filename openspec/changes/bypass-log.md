@@ -411,3 +411,17 @@
 - targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
 - followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
 - user: fengyujing
+## 2026-08-12T09:36:32.099Z
+
+- command: openxiangda resource publish
+- reason: Add secretRefs for Aliyun credentials and upgrade to function_v2
+- targets: {"forms":[],"pages":[],"functions":["billing_proxy"],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"resourceSelectors":{},"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-12T09:37:16.611Z
+
+- command: openxiangda resource publish
+- reason: Add secretRefs for Aliyun credentials and upgrade to function_v2
+- targets: {"forms":[],"pages":[],"functions":["billing_proxy"],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"resourceSelectors":{},"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
