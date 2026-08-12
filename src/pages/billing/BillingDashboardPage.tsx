@@ -200,10 +200,10 @@ export function BillingDashboardPage() {
         billingApi.getModelCostList(params),
         billingApi.getCompanyCostSummary(params),
       ]);
-      setOverview(ov);
-      setTrend(tr);
-      setModelCosts(mc);
-      setSummary(sm);
+      setOverview(ov || { totalCost: 0, currentPeriodCost: 0, lastPeriodCost: 0, costChangeRate: 0, totalCalls: 0, totalTokens: 0 });
+      setTrend(Array.isArray(tr) ? tr : []);
+      setModelCosts(Array.isArray(mc) ? mc : []);
+      setSummary(Array.isArray(sm) ? sm : []);
     } finally {
       setLoading(false);
     }

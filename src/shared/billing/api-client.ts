@@ -292,12 +292,17 @@ async function invokeBilling<T>(action: BillingAction, params: Record<string, un
       }
       
       const result = await res.json();
-      if (result.success === false) {
-        throw new Error(result.error || 'Function 调用失败');
+      
+      // Function invoke API 返回格式:
+      // { code: 200, data: { invocationId, result: {success, data}, output: {success, data} } }
+      // 实际业务数据在 output.data 或 data.output.data
+      const fnOutput = result.output ?? result.data?.output ?? result.data?.result ?? result;
+      
+      if (fnOutput.success === false) {
+        throw new Error(fnOutput.error || 'Function 调用失败');
       }
       
-      // function 返回格式: { success: true, data: ... }
-      return (result.data ?? result.output?.data ?? result) as T;
+      return (fnOutput.data ?? fnOutput) as T;
     }
     
     // 使用 SDK 调用
@@ -309,11 +314,12 @@ async function invokeBilling<T>(action: BillingAction, params: Record<string, un
     });
     
     const result = res.data ?? res;
-    if (result.success === false) {
-      throw new Error(result.error || 'Function 调用失败');
+    const fnOutput = result.output ?? result.result ?? result;
+    if (fnOutput.success === false) {
+      throw new Error(fnOutput.error || 'Function 调用失败');
     }
     
-    return (result.data ?? result) as T;
+    return (fnOutput.data ?? fnOutput) as T;
   } catch (error) {
     console.error('调用 billing_proxy 失败:', error);
     console.warn('使用 mock 数据作为 fallback');
@@ -349,9 +355,13 @@ function getMockData<T>(action: BillingAction, params: Record<string, unknown>):
 export const billingApi = {
   /** 获取客户（公司）列表 — 从真实 API 获取 */
   getCompanies: () =>
-    invokeBilling<any[]>("clientList", {}).then(clients =>
-      (clients || []).map((c: any) => ({ id: String(c.id), name: c.name || `客户${c.id}` }))
-    ).catch(() => {
+    invokeBilling<any[]>("clientList", {}).then(clients => {
+      const list = Array.isArray(clients) ? clients : [];
+      return list.map((c: any) => ({ id: String(c.id), name: c.name || `客户${c.id}` }));
+    }).then(companies => {
+      // 如果 API 返回空列表，使用 fallback
+      return companies.length > 0 ? companies : COMPANIES;
+    }).catch(() => {
       // fallback 到硬编码列表
       return COMPANIES;
     }),

@@ -38,7 +38,7 @@ export function CallSourcesPage() {
         page,
         pageSize,
       });
-      setData(result);
+      setData(result || { items: [], total: 0, page: 1, pageSize: 20 });
     } finally {
       setLoading(false);
     }
