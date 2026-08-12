@@ -397,9 +397,13 @@ export const billingApi = {
 
   getModelCostList: (params: BillingDashboardParams) =>
     invokeBilling<any>("modelCostList", params as unknown as Record<string, unknown>).then(raw => {
+      console.log('[billingApi] modelCostList raw response:', raw);
       // API 返回 {columns, rows, idField, nameField} 或直接数组
       const rows = raw?.rows || raw || [];
-      return (Array.isArray(rows) ? rows : []).map(mapModelCostRow);
+      console.log('[billingApi] modelCostList rows:', rows);
+      const mapped = (Array.isArray(rows) ? rows : []).map(mapModelCostRow);
+      console.log('[billingApi] modelCostList mapped:', mapped);
+      return mapped;
     }),
 
   getCompanyCostSummary: (params: BillingDashboardParams) =>
