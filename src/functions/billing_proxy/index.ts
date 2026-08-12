@@ -191,13 +191,36 @@ const ALLOWED_COMPANIES = new Set([
 ]);
 
 /**
+ * modelType → modelCategory 映射
+ * 前端类别：大语言模型、视觉模型、语音模型、图像生成
+ */
+const MODEL_TYPE_TO_CATEGORY: Record<string, string> = {
+  Chat: "大语言模型",
+  ChatMultimodal: "大语言模型",
+  Embedding: "大语言模型",
+  ASR: "语音模型",
+  TTS: "语音模型",
+  ImageGeneration: "图像生成",
+  VideoGeneration: "视觉模型",
+};
+
+/**
+ * 将 modelType 转换为 modelCategory
+ */
+function getModelCategory(modelType: string): string {
+  return MODEL_TYPE_TO_CATEGORY[modelType] || "其他";
+}
+
+/**
  * 过滤 breakdown 数据，只保留默认部门和咪咕正式的数据
  * 如果指定了 companyId，则只保留该公司的数据
+ * 如果指定了 modelCategory，则只保留该类别的模型数据
  */
 function filterByAllowedDepartments(
   rows: any[],
   parentMap: Map<string, { parentId: string; parentName: string }>,
-  companyId?: string
+  companyId?: string,
+  modelCategory?: string
 ): any[] {
   return rows.filter(row => {
     const clientId = String(row.clientId || "");
@@ -210,6 +233,12 @@ function filterByAllowedDepartments(
     // 2. 如果指定了 companyId，进一步过滤
     if (companyId && resolvedCompanyId !== companyId && companyName !== companyId) {
       return false;
+    }
+    
+    // 3. 如果指定了 modelCategory，按模型类别过滤
+    if (modelCategory && modelCategory !== "全部类别") {
+      const rowCategory = getModelCategory(row.modelType || "");
+      if (rowCategory !== modelCategory) return false;
     }
     
     return true;
@@ -246,8 +275,8 @@ async function getCostOverview(ctx: any, params: any) {
     if (m?.key) metricMap[m.key] = m.value ?? 0;
   }
 
-  // 过滤后汇总费用（只统计默认部门和咪咕正式，如果指定了 companyId 则只统计该公司）
-  const filteredRows = filterByAllowedDepartments(allRows, parentMap, params.companyId);
+  // 过滤后汇总费用（只统计默认部门和咪咕正式，如果指定了 companyId/modelCategory 则进一步过滤）
+  const filteredRows = filterByAllowedDepartments(allRows, parentMap, params.companyId, params.modelCategory);
   let totalCost = 0;
   for (const row of filteredRows) {
     totalCost += row.payableAmount || 0;
@@ -278,8 +307,8 @@ async function getCostTrend(ctx: any, params: any) {
     buildClientParentMap(ctx),
   ]);
   
-  // 过滤：只保留允许的公司（如果指定了 companyId 则只保留该公司）
-  const filteredRows = filterByAllowedDepartments(allRows, parentMap, params.companyId);
+  // 过滤：只保留允许的公司（如果指定了 companyId/modelCategory 则进一步过滤）
+  const filteredRows = filterByAllowedDepartments(allRows, parentMap, params.companyId, params.modelCategory);
   
   // 按公司+日期分组汇总
   const companyDayMap = new Map<string, { date: string; company: string; cost: number }>();
@@ -309,22 +338,71 @@ async function getCostTrend(ctx: any, params: any) {
 
 /**
  * 获取模型费用列表（按模型分类）
- * 注意：实际 API 可能需要根据具体文档调整
+ * 从 breakdown 数据中获取 modelType，映射到 modelCategory
  */
 async function getModelCostList(ctx: any, params: any) {
   const now = Math.floor(Date.now() / 1000);
   const startTime = params.startTime || now - 86400 * 30;
   const endTime = params.endTime || now;
   
-  const data = await callModelRouterAPI(ctx, "/api/v1/modelRouter/open/billing/cost/models", {
-    startTime,
-    endTime,
-    modelTypes: params.modelTypes,
-    clientId: params.clientId,
-    apiKeyId: params.apiKeyId,
-    memberUserIds: params.memberUserIds,
-  }, "ModelRouterQueryCostModelList");
-  return data?.data || [];
+  // 并发获取模型列表和 breakdown 数据（用于获取 modelType 映射）
+  const [modelData, allRows, parentMap] = await Promise.all([
+    callModelRouterAPI(ctx, "/api/v1/modelRouter/open/billing/cost/models", {
+      startTime,
+      endTime,
+      modelTypes: params.modelTypes,
+      clientId: params.clientId,
+      apiKeyId: params.apiKeyId,
+      memberUserIds: params.memberUserIds,
+    }, "ModelRouterQueryCostModelList"),
+    fetchAllBreakdownRows(ctx, { startTime, endTime, granularity: "daily" }),
+    buildClientParentMap(ctx),
+  ]);
+  
+  // 从 breakdown 数据构建 modelName → modelType 映射
+  const modelTypeMap = new Map<string, string>();
+  for (const row of allRows) {
+    const name = row.modelName || row.modelCode;
+    if (name && row.modelType && !modelTypeMap.has(name)) {
+      modelTypeMap.set(name, row.modelType);
+    }
+  }
+  
+  // 处理模型列表数据
+  const raw = modelData?.data;
+  const rows = raw?.rows || raw || [];
+  const items = (Array.isArray(rows) ? rows : []).map((row: any) => {
+    let values: Record<string, number> = {};
+    if (typeof row.values === "string") {
+      try { values = JSON.parse(row.values); } catch { values = {}; }
+    } else if (row.values && typeof row.values === "object") {
+      values = row.values;
+    }
+    const modelName = row.modelName || row.modelCode || row.model || "未知模型";
+    const modelType = modelTypeMap.get(modelName) || "";
+    const modelCategory = getModelCategory(modelType);
+    
+    const cost = values.total_amount ?? values.totalAmount ??
+      (values.input_price_cost || 0) + (values.output_price_cost || 0) +
+      (values.thinking_output_price_cost || 0) + (values.cached_input_price_cost || 0);
+    
+    return {
+      model: modelName,
+      modelType,
+      modelCategory,
+      totalCost: cost,
+      totalCalls: values.total_calls ?? values.totalCalls ?? 0,
+      totalInputTokens: values.input_tokens ?? values.total_input_tokens ?? 0,
+      totalOutputTokens: values.output_tokens ?? values.total_output_tokens ?? 0,
+    };
+  });
+  
+  // 如果指定了 modelCategory，过滤模型列表
+  if (params.modelCategory && params.modelCategory !== "全部类别") {
+    return items.filter((item: any) => item.modelCategory === params.modelCategory);
+  }
+  
+  return items;
 }
 
 /**
@@ -545,8 +623,8 @@ async function getCompanyCostSummary(ctx: any, params: any) {
     buildClientParentMap(ctx),
   ]);
   
-  // 过滤：只保留默认部门和咪咕正式的数据（如果指定了 companyId 则只保留该公司）
-  const filteredRows = filterByAllowedDepartments(allRows, parentMap, params.companyId);
+  // 过滤：只保留默认部门和咪咕正式的数据（如果指定了 companyId/modelCategory 则进一步过滤）
+  const filteredRows = filterByAllowedDepartments(allRows, parentMap, params.companyId, params.modelCategory);
   console.log(`breakdown 过滤: ${allRows.length} 条 → ${filteredRows.length} 条`);
   
   // 按公司分组汇总（使用过滤后的数据）

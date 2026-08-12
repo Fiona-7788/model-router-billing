@@ -241,19 +241,15 @@ function mapModelCostRow(row: any): ModelCostItem {
   } else if (row.values && typeof row.values === "object") {
     values = row.values;
   }
-  // 计算费用: input_price_cost + output_price_cost + thinking_output_price_cost + cached_input_price_cost 等
-  const cost = values.total_amount ?? values.totalAmount ??
-    (values.input_price_cost || 0) + (values.output_price_cost || 0) +
-    (values.thinking_output_price_cost || 0) + (values.cached_input_price_cost || 0) +
-    (values.cache_creation_input_price_cost || 0) + (values.web_search_cost || 0) +
-    (values.code_interpreter_cost || 0);
+  // 优先使用后端返回的 modelCategory，其次 modelType
+  const modelCategory = row.modelCategory || row.modelType || "未知类别";
   return {
-    model: row.modelName || row.modelCode || row.model || "未知模型",
-    modelCategory: row.modelType || row.modelCategory || "未知类别",
-    totalCost: cost,
-    totalCalls: values.total_calls ?? values.totalCalls ?? 0,
-    totalInputTokens: values.input_tokens ?? values.total_input_tokens ?? 0,
-    totalOutputTokens: values.output_tokens ?? values.total_output_tokens ?? 0,
+    model: row.model || row.modelName || row.modelCode || "未知模型",
+    modelCategory,
+    totalCost: row.totalCost ?? row.total_cost ?? 0,
+    totalCalls: row.totalCalls ?? row.total_calls ?? values.total_calls ?? values.totalCalls ?? 0,
+    totalInputTokens: row.totalInputTokens ?? row.total_input_tokens ?? values.input_tokens ?? values.total_input_tokens ?? 0,
+    totalOutputTokens: row.totalOutputTokens ?? row.total_output_tokens ?? values.output_tokens ?? values.total_output_tokens ?? 0,
   };
 }
 
