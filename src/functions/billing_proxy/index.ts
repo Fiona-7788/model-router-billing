@@ -255,79 +255,45 @@ async function getCostOverview(ctx: any, params: any) {
 
 /**
  * 获取费用趋势指标
- * API: GET /api/v1/modelRouter/open/billing/cost/trend
- * 按公司（parentId）分组返回（散户归到父级公司）
+ * 改用 breakdown API（包含所有公司的每日数据），不再逐个调用 trend API
  */
 async function getCostTrend(ctx: any, params: any) {
   const now = Math.floor(Date.now() / 1000);
   const startTime = params.startTime || now - 86400 * 30;
   const endTime = params.endTime || now;
-  const granularity = params.granularity || "daily";
   
-  // 并发获取客户列表和父级映射
-  const [clients, parentMap] = await Promise.all([
-    getClientList(ctx),
+  // 并发获取 breakdown 数据和 parentMap
+  const [allRows, parentMap] = await Promise.all([
+    fetchAllBreakdownRows(ctx, { startTime, endTime, granularity: "daily" }),
     buildClientParentMap(ctx),
   ]);
   
-  // 分批并发获取趋势数据（每批 20 个，避免过多并发请求）
-  const BATCH_SIZE = 20;
-  const allTrends: Array<{ clientId: string; companyName: string; points: any[] }> = [];
+  // 过滤：只保留允许的公司
+  const filteredRows = filterByAllowedDepartments(allRows, parentMap);
   
-  for (let i = 0; i < clients.length; i += BATCH_SIZE) {
-    const batch = clients.slice(i, i + BATCH_SIZE);
-    const batchResults = await Promise.all(
-      batch.map(async (client: any) => {
-        try {
-          const data = await callModelRouterAPI(ctx, "/api/v1/modelRouter/open/billing/cost/trend", {
-            startTime,
-            endTime,
-            clientId: client.id,
-            granularity,
-          }, "ModelRouterQueryCostTrendMetrics");
-          
-          const points = data?.data?.points || [];
-          // 用父级公司名替代散户名
-          const parentInfo = parentMap.get(String(client.id));
-          const companyName = parentInfo?.parentName || client.name || `客户${client.id}`;
-          return { clientId: String(client.id), companyName, points };
-        } catch {
-          return { clientId: String(client.id), companyName: client.name, points: [] };
-        }
-      })
-    );
-    allTrends.push(...batchResults);
-  }
-  
-  // 按公司分组聚合趋势数据
-  // 同一公司下的多个散户，同一天的 calls 累加
-  // 咪咕用户散户统一归到"咪咕数媒"
+  // 按公司+日期分组汇总
   const companyDayMap = new Map<string, { date: string; company: string; cost: number }>();
   
-  for (const { clientId, companyName, points } of allTrends) {
-    // 用 resolveCompany 统一解析公司名
-    const { companyName: resolvedCompany } = resolveCompany(clientId, companyName, parentMap);
-    // 过滤：只保留允许的公司
-    if (!ALLOWED_COMPANIES.has(resolvedCompany)) continue;
+  for (const row of filteredRows) {
+    const clientId = String(row.clientId || "");
+    const clientName = row.clientName || "";
+    const { companyName: resolvedCompany } = resolveCompany(clientId, clientName, parentMap);
     
-    for (const point of points) {
-      const ts = point.timestamp;
-      const dateStr = new Date(ts * 1000).toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit" });
-      let vals = point.values;
-      if (typeof vals === "string") {
-        try { vals = JSON.parse(vals); } catch { vals = {}; }
-      }
-      const calls = vals?.total_calls || 0;
-      if (calls > 0) {
-        const key = `${resolvedCompany}|${dateStr}`;
-        if (!companyDayMap.has(key)) {
-          companyDayMap.set(key, { date: dateStr, company: resolvedCompany, cost: 0 });
-        }
-        companyDayMap.get(key)!.cost += calls;
-      }
+    // 从 summaryTime 或 row.date 获取日期
+    const ts = row.summaryTime || row.timestamp;
+    const dateStr = ts
+      ? new Date(ts * 1000).toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit" })
+      : "";
+    if (!dateStr) continue;
+    
+    const key = `${resolvedCompany}|${dateStr}`;
+    if (!companyDayMap.has(key)) {
+      companyDayMap.set(key, { date: dateStr, company: resolvedCompany, cost: 0 });
     }
+    companyDayMap.get(key)!.cost += row.payableAmount || 0;
   }
   
+  console.log(`趋势数据: ${filteredRows.length} 条 breakdown → ${companyDayMap.size} 条趋势点`);
   return Array.from(companyDayMap.values());
 }
 
