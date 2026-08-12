@@ -10,7 +10,6 @@
  */
 
 import crypto from "crypto";
-import https from "https";
 
 // 阿里云 AiContent API 配置
 const API_HOST = "aicontent.aliyuncs.com";
@@ -21,15 +20,17 @@ const API_VERSION = "20240611";
  * 从 secrets 获取阿里云凭证
  */
 async function getAliyunCredentials(ctx: any) {
-  const accessKeyId = await ctx.secrets.get("ALIYUN_ACCESS_KEY_ID");
-  const accessKeySecret = await ctx.secrets.get("ALIYUN_ACCESS_KEY_SECRET");
-  
-  if (!accessKeyId || !accessKeySecret) {
-    throw new Error("未配置阿里云凭证，请执行:\n" +
-      "  openxiangda secret create ALIYUN_ACCESS_KEY_ID --value-stdin --change <change-id> --profile yida\n" +
-      "  openxiangda secret create ALIYUN_ACCESS_KEY_SECRET --value-stdin --change <change-id> --profile yida");
+  let accessKeyId: string | undefined;
+  let accessKeySecret: string | undefined;
+  try {
+    accessKeyId = await ctx.secrets.get("ALIYUN_ACCESS_KEY_ID");
+    accessKeySecret = await ctx.secrets.get("ALIYUN_ACCESS_KEY_SECRET");
+  } catch (_e) {
+    // function_v1 may not support ctx.secrets.get
   }
-  
+  if (!accessKeyId || !accessKeySecret) {
+    throw new Error("未配置阿里云凭证");
+  }
   return { accessKeyId, accessKeySecret };
 }
 
@@ -123,34 +124,11 @@ async function callModelRouterAPI(
   console.log(`Calling ${action}: GET ${path}`);
 
   try {
-    const data = await new Promise<any>((resolve, reject) => {
-      const parsedUrl = new URL(url);
-      const reqOptions = {
-        hostname: parsedUrl.hostname,
-        port: parsedUrl.port || 443,
-        path: parsedUrl.pathname + parsedUrl.search,
-        method: "GET",
-        headers,
-      };
-      const req = https.request(reqOptions, (res) => {
-        let body = "";
-        res.on("data", (chunk: Buffer) => { body += chunk.toString(); });
-        res.on("end", () => {
-          try {
-            const parsed = JSON.parse(body);
-            if (parsed.success === false) {
-              reject(new Error(`API 错误: ${parsed.message || parsed.errMessage || "未知错误"}`));
-            } else {
-              resolve(parsed);
-            }
-          } catch (e) {
-            reject(new Error(`JSON 解析失败: ${body.substring(0, 200)}`));
-          }
-        });
-      });
-      req.on("error", (e: Error) => reject(e));
-      req.end();
-    });
+    const response = await fetch(url, { method: "GET", headers });
+    const data = await response.json();
+    if (data.success === false) {
+      throw new Error(`API 错误: ${data.message || data.errMessage || "未知错误"}`);
+    }
     return data;
   } catch (error: any) {
     console.error(`调用 ${action} 失败:`, error?.message);
