@@ -217,8 +217,8 @@ function mapOverviewResponse(raw: any): CostOverviewMetrics {
     return {
       totalCost,
       currentPeriodCost: totalCost,
-      lastPeriodCost: 0,
-      costChangeRate: 0,
+      lastPeriodCost: raw.lastPeriodCost ?? 0,
+      costChangeRate: raw.costChangeRate ?? 0,
       totalCalls: totalCalls || m.total_calls || 0,
       totalTokens: totalTokens || m.total_tokens || 0,
     };
@@ -226,8 +226,8 @@ function mapOverviewResponse(raw: any): CostOverviewMetrics {
   return {
     totalCost,
     currentPeriodCost: totalCost,
-    lastPeriodCost: 0,
-    costChangeRate: 0,
+    lastPeriodCost: raw.lastPeriodCost ?? 0,
+    costChangeRate: raw.costChangeRate ?? 0,
     totalCalls,
     totalTokens,
   };
