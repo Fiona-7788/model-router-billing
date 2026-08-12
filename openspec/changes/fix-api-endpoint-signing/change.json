@@ -1,0 +1,7 @@
+{
+  "id": "fix-api-endpoint-signing",
+  "title": "Fix Aliyun AiContent API endpoint and ROA v1 signing",
+  "level": "L2",
+  "status": "active",
+  "createdAt": "2026-08-12T04:30:00.000Z"
+}
