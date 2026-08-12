@@ -146,6 +146,10 @@ async function getBillingCostTabs(ctx: any) {
 /**
  * 分页获取全部 breakdown 数据
  * API 单次最多返回 500 条，需要分页获取
+ * 
+ * 只返回属于以下部门的客户数据：
+ * - 默认部门下的所有客户（奕阳教育、南京仰格、贵州图辑、麦达、正元、生芽教育及其子部门）
+ * - 咪咕正式下的所有客户（咪咕用户-xxx-模型）
  */
 async function fetchAllBreakdownRows(
   ctx: any,
@@ -173,6 +177,36 @@ async function fetchAllBreakdownRows(
 }
 
 /**
+ * 允许的一级公司列表（默认部门下 + 咪咕正式）
+ * 只有这些公司的数据会出现在汇总、趋势和列表中
+ */
+const ALLOWED_COMPANIES = new Set([
+  "奕阳教育",
+  "南京仰格",
+  "贵州图辑",
+  "麦达",
+  "正元",
+  "生芽教育",
+  "咪咕数媒",
+]);
+
+/**
+ * 过滤 breakdown 数据，只保留默认部门和咪咕正式的数据
+ * 通过 resolveCompany 解析后检查公司名是否在允许列表中
+ */
+function filterByAllowedDepartments(
+  rows: any[],
+  parentMap: Map<string, { parentId: string; parentName: string }>
+): any[] {
+  return rows.filter(row => {
+    const clientId = String(row.clientId || "");
+    const clientName = row.clientName || "";
+    const { companyName } = resolveCompany(clientId, clientName, parentMap);
+    return ALLOWED_COMPANIES.has(companyName);
+  });
+}
+
+/**
  * 获取费用概览指标
  * 组合 overview API（调用次数/token）和 breakdown API（费用）
  */
@@ -182,7 +216,7 @@ async function getCostOverview(ctx: any, params: any) {
   const endTime = params.endTime || now;
 
   // 并发获取 overview 指标和全部 breakdown 费用数据
-  const [overviewData, allRows] = await Promise.all([
+  const [overviewData, allRows, parentMap] = await Promise.all([
     callModelRouterAPI(ctx, "/api/v1/modelRouter/open/billing/cost/overview", {
       startTime,
       endTime,
@@ -192,6 +226,7 @@ async function getCostOverview(ctx: any, params: any) {
       memberUserIds: params.memberUserIds,
     }, "ModelRouterQueryCostOverviewMetrics"),
     fetchAllBreakdownRows(ctx, { startTime, endTime, granularity: "daily" }),
+    buildClientParentMap(ctx),
   ]);
 
   // overview 返回 [{key, label, value, unit}]
@@ -201,9 +236,10 @@ async function getCostOverview(ctx: any, params: any) {
     if (m?.key) metricMap[m.key] = m.value ?? 0;
   }
 
-  // 从全部 breakdown 汇总费用
+  // 过滤后汇总费用（只统计默认部门和咪咕正式）
+  const filteredRows = filterByAllowedDepartments(allRows, parentMap);
   let totalCost = 0;
-  for (const row of allRows) {
+  for (const row of filteredRows) {
     totalCost += row.payableAmount || 0;
   }
 
@@ -269,10 +305,10 @@ async function getCostTrend(ctx: any, params: any) {
   const companyDayMap = new Map<string, { date: string; company: string; cost: number }>();
   
   for (const { clientId, companyName, points } of allTrends) {
-    // 确定该公司名
-    const parentInfo = parentMap.get(clientId);
-    const resolvedCompany = parentInfo?.parentName || 
-      (companyName.includes("咪咕用户") ? "咪咕数媒" : companyName);
+    // 用 resolveCompany 统一解析公司名
+    const { companyName: resolvedCompany } = resolveCompany(clientId, companyName, parentMap);
+    // 过滤：只保留允许的公司
+    if (!ALLOWED_COMPANIES.has(resolvedCompany)) continue;
     
     for (const point of points) {
       const ts = point.timestamp;
@@ -490,45 +526,28 @@ async function buildClientParentMap(ctx: any): Promise<Map<string, { parentId: s
  * 获取公司级客户列表（散户归到父级公司）
  */
 async function getCompanyList(ctx: any) {
-  const parentMap = await buildClientParentMap(ctx);
+  const [parentMap, allBdRows] = await Promise.all([
+    buildClientParentMap(ctx),
+    (async () => {
+      const now = Math.floor(Date.now() / 1000);
+      return fetchAllBreakdownRows(ctx, {
+        startTime: now - 86400 * 30,
+        endTime: now,
+        granularity: "daily",
+      });
+    })(),
+  ]);
   
-  // 从 parentMap 提取唯一的公司列表
+  // 只返回允许的公司
   const companySet = new Map<string, { id: string; name: string }>();
-  for (const [, info] of parentMap) {
-    if (!companySet.has(info.parentId)) {
-      companySet.set(info.parentId, { id: info.parentId, name: info.parentName });
+  for (const row of allBdRows) {
+    const clientId = String(row.clientId);
+    const clientName = row.clientName || "";
+    const { companyId, companyName } = resolveCompany(clientId, clientName, parentMap);
+    if (!ALLOWED_COMPANIES.has(companyName)) continue;
+    if (!companySet.has(companyId)) {
+      companySet.set(companyId, { id: companyId, name: companyName });
     }
-  }
-  
-  // 同时添加不在 parentMap 中的公司级节点（从 breakdown 数据中获取）
-  const now = Math.floor(Date.now() / 1000);
-  try {
-    const allBdRows = await fetchAllBreakdownRows(ctx, {
-      startTime: now - 86400 * 30,
-      endTime: now,
-      granularity: "daily",
-    });
-    
-    for (const row of allBdRows) {
-      const clientId = String(row.clientId);
-      const clientName = row.clientName || "";
-      // 检查是否已经在 parentMap 中（散户已归到父级公司）
-      const parentInfo = parentMap.get(clientId);
-      if (parentInfo) continue; // 已在 parentMap 中，跳过
-      // 咪咕用户散户归到"咪咕数媒"
-      if (clientName.includes("咪咕用户")) {
-        if (!companySet.has("migu")) {
-          companySet.set("migu", { id: "migu", name: "咪咕数媒" });
-        }
-        continue;
-      }
-      // 公司级节点
-      if (!companySet.has(clientId)) {
-        companySet.set(clientId, { id: clientId, name: clientName || `客户${clientId}` });
-      }
-    }
-  } catch {
-    // 如果 breakdown 调用失败，只用 parentMap 中的公司
   }
   
   return Array.from(companySet.values());
@@ -550,13 +569,14 @@ async function getCompanyCostSummary(ctx: any, params: any) {
     buildClientParentMap(ctx),
   ]);
   
-  // 按公司分组汇总
-  // 散户（咪咕用户-xxx）归到"咪咕数媒"
-  // 其他有 parentId 的叶子节点归到父级公司
-  // 公司级条目保持独立
+  // 过滤：只保留默认部门和咪咕正式的数据
+  const filteredRows = filterByAllowedDepartments(allRows, parentMap);
+  console.log(`breakdown 过滤: ${allRows.length} 条 → ${filteredRows.length} 条`);
+  
+  // 按公司分组汇总（使用过滤后的数据）
   const companyMap = new Map<string, { companyId: string; companyName: string; totalCost: number; totalCalls: number; totalTokens: number }>();
   
-  for (const row of allRows) {
+  for (const row of filteredRows) {
     const clientId = String(row.clientId || "unknown");
     const clientName = row.clientName || "";
     const { companyId, companyName } = resolveCompany(clientId, clientName, parentMap);
@@ -576,7 +596,7 @@ async function getCompanyCostSummary(ctx: any, params: any) {
     entry.totalTokens += (vals?.input_tokens || 0) + (vals?.output_tokens || 0);
   }
   
-  console.log(`公司汇总: ${allRows.length} 条 breakdown → ${companyMap.size} 家公司`);
+  console.log(`公司汇总: ${filteredRows.length} 条 breakdown → ${companyMap.size} 家公司`);
   return Array.from(companyMap.values());
 }
 
