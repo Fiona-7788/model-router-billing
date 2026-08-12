@@ -376,64 +376,64 @@ async function getCostTrend(ctx: any, params: any) {
 
 /**
  * 获取模型费用列表（按模型分类）
- * 从 breakdown 数据中获取 modelType，映射到 modelCategory
+ * 使用 breakdown API 按模型聚合费用数据
  */
 async function getModelCostList(ctx: any, params: any) {
   const now = Math.floor(Date.now() / 1000);
   const startTime = params.startTime || now - 86400 * 30;
   const endTime = params.endTime || now;
   
-  // 并发获取模型列表和 breakdown 数据（用于获取 modelType 映射）
-  const [modelData, allRows, parentMap] = await Promise.all([
-    callModelRouterAPI(ctx, "/api/v1/modelRouter/open/billing/cost/models", {
-      startTime,
-      endTime,
-      modelTypes: params.modelTypes,
-      clientId: params.clientId,
-      apiKeyId: params.apiKeyId,
-      memberUserIds: params.memberUserIds,
-    }, "ModelRouterQueryCostModelList"),
+  // 获取全部 breakdown 数据和客户-父级映射
+  const [allRows, parentMap] = await Promise.all([
     fetchAllBreakdownRows(ctx, { startTime, endTime, granularity: "daily" }),
     buildClientParentMap(ctx),
   ]);
   
-  // 从 breakdown 数据构建 modelName → modelType 映射
-  const modelTypeMap = new Map<string, string>();
-  for (const row of allRows) {
-    const name = row.modelName || row.modelCode;
-    if (name && row.modelType && !modelTypeMap.has(name)) {
-      modelTypeMap.set(name, row.modelType);
-    }
-  }
+  // 过滤：只保留默认部门和咪咕正式的数据（如果指定了 companyId/modelCategory 则进一步过滤）
+  const filteredRows = filterByAllowedDepartments(allRows, parentMap, params.companyId, params.modelCategory);
   
-  // 处理模型列表数据
-  const raw = modelData?.data;
-  const rows = raw?.rows || raw || [];
-  const items = (Array.isArray(rows) ? rows : []).map((row: any) => {
-    let values: Record<string, number> = {};
-    if (typeof row.values === "string") {
-      try { values = JSON.parse(row.values); } catch { values = {}; }
-    } else if (row.values && typeof row.values === "object") {
-      values = row.values;
-    }
-    const modelName = row.modelName || row.modelCode || row.model || "未知模型";
-    const modelType = modelTypeMap.get(modelName) || "";
+  // 按模型聚合数据
+  const modelMap = new Map<string, {
+    model: string;
+    modelType: string;
+    modelCategory: string;
+    totalCost: number;
+    totalCalls: number;
+    totalInputTokens: number;
+    totalOutputTokens: number;
+  }>();
+  
+  for (const row of filteredRows) {
+    const modelName = row.modelName || row.modelCode || "未知模型";
+    const modelType = row.modelType || "";
     const modelCategory = getModelCategory(modelType);
     
-    const cost = values.total_amount ?? values.totalAmount ??
-      (values.input_price_cost || 0) + (values.output_price_cost || 0) +
-      (values.thinking_output_price_cost || 0) + (values.cached_input_price_cost || 0);
+    if (!modelMap.has(modelName)) {
+      modelMap.set(modelName, {
+        model: modelName,
+        modelType,
+        modelCategory,
+        totalCost: 0,
+        totalCalls: 0,
+        totalInputTokens: 0,
+        totalOutputTokens: 0,
+      });
+    }
     
-    return {
-      model: modelName,
-      modelType,
-      modelCategory,
-      totalCost: cost,
-      totalCalls: values.total_calls ?? values.totalCalls ?? 0,
-      totalInputTokens: values.input_tokens ?? values.total_input_tokens ?? 0,
-      totalOutputTokens: values.output_tokens ?? values.total_output_tokens ?? 0,
-    };
-  });
+    const entry = modelMap.get(modelName)!;
+    entry.totalCost += row.payableAmount || 0;
+    
+    // values 可能是 JSON 字符串
+    let vals = row.values;
+    if (typeof vals === "string") {
+      try { vals = JSON.parse(vals); } catch { vals = {}; }
+    }
+    entry.totalCalls += vals?.total_calls || 0;
+    entry.totalInputTokens += vals?.input_tokens || 0;
+    entry.totalOutputTokens += vals?.output_tokens || 0;
+  }
+  
+  const items = Array.from(modelMap.values());
   
   // 如果指定了 modelCategory，过滤模型列表
   if (params.modelCategory && params.modelCategory !== "全部类别") {
