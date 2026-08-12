@@ -10,6 +10,7 @@
  */
 
 import crypto from "crypto";
+import https from "https";
 
 // 阿里云 AiContent API 配置
 const API_HOST = "aicontent.aliyuncs.com";
@@ -122,11 +123,34 @@ async function callModelRouterAPI(
   console.log(`Calling ${action}: GET ${path}`);
 
   try {
-    const response = await fetch(url, { method: "GET", headers });
-    const data = await response.json();
-    if (data.success === false) {
-      throw new Error(`API 错误: ${data.message || data.errMessage || "未知错误"}`);
-    }
+    const data = await new Promise<any>((resolve, reject) => {
+      const parsedUrl = new URL(url);
+      const reqOptions = {
+        hostname: parsedUrl.hostname,
+        port: parsedUrl.port || 443,
+        path: parsedUrl.pathname + parsedUrl.search,
+        method: "GET",
+        headers,
+      };
+      const req = https.request(reqOptions, (res) => {
+        let body = "";
+        res.on("data", (chunk: Buffer) => { body += chunk.toString(); });
+        res.on("end", () => {
+          try {
+            const parsed = JSON.parse(body);
+            if (parsed.success === false) {
+              reject(new Error(`API 错误: ${parsed.message || parsed.errMessage || "未知错误"}`));
+            } else {
+              resolve(parsed);
+            }
+          } catch (e) {
+            reject(new Error(`JSON 解析失败: ${body.substring(0, 200)}`));
+          }
+        });
+      });
+      req.on("error", (e: Error) => reject(e));
+      req.end();
+    });
     return data;
   } catch (error: any) {
     console.error(`调用 ${action} 失败:`, error?.message);
