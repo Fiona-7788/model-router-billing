@@ -633,11 +633,18 @@ async function getCompanyList(ctx: any) {
  * 获取部门/公司费用汇总
  * 通过 breakdown 数据按公司（parentId）分组汇总
  * 散户（如咪咕用户）归到父级公司名下
+ * totalCost 返回今日费用，totalCalls/totalTokens 返回周期累计
  */
 async function getCompanyCostSummary(ctx: any, params: any) {
   const now = Math.floor(Date.now() / 1000);
   const startTime = params.startTime || now - 86400 * 30;
   const endTime = params.endTime || now;
+  
+  // 今日时间范围（北京时间 UTC+8）
+  const beijingOffset = 8 * 3600; // 8小时偏移
+  const nowBeijing = now + beijingOffset; // 当前北京时间的时间戳（相对 UTC 0点）
+  const todayStart = Math.floor(nowBeijing / 86400) * 86400 - beijingOffset; // 今天北京时间 00:00:00 对应的 UTC 时间戳
+  const todayEnd = todayStart + 86400; // 明天北京时间 00:00:00 对应的 UTC 时间戳
   
   // 并发获取全部 breakdown 数据和客户-父级映射
   const [allRows, parentMap] = await Promise.all([
@@ -661,7 +668,12 @@ async function getCompanyCostSummary(ctx: any, params: any) {
       companyMap.set(companyId, { companyId, companyName, totalCost: 0, totalCalls: 0, totalTokens: 0 });
     }
     const entry = companyMap.get(companyId)!;
-    entry.totalCost += row.payableAmount || 0;
+    
+    // 今日费用
+    const ts = row.summaryTime || row.timestamp;
+    if (ts && ts >= todayStart && ts < todayEnd) {
+      entry.totalCost += row.payableAmount || 0;
+    }
     
     // values 可能是 JSON 字符串
     let vals = row.values;
