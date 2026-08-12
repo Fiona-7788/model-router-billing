@@ -1,0 +1,8 @@
+{
+  "code": "billing_dashboard",
+  "name": "账单看板",
+  "type": "nav",
+  "sortOrder": 5,
+  "icon": "DollarSign",
+  "isHidden": false
+}

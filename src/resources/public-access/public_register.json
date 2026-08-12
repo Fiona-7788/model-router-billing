@@ -1,0 +1,18 @@
+{
+  "code": "public_register",
+  "name": "公开报名入口",
+  "description": "",
+  "enabled": true,
+  "mode": "guest",
+  "routeCode": "public.register",
+  "pathPattern": "/view/:appType/public/register",
+  "externalRoleCodes": [
+    "external_visitor"
+  ],
+  "grants": {
+    "formCodes": [],
+    "dataViews": [],
+    "functions": [],
+    "connectors": []
+  }
+}
