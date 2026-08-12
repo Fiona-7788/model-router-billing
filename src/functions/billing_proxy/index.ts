@@ -192,17 +192,27 @@ const ALLOWED_COMPANIES = new Set([
 
 /**
  * 过滤 breakdown 数据，只保留默认部门和咪咕正式的数据
- * 通过 resolveCompany 解析后检查公司名是否在允许列表中
+ * 如果指定了 companyId，则只保留该公司的数据
  */
 function filterByAllowedDepartments(
   rows: any[],
-  parentMap: Map<string, { parentId: string; parentName: string }>
+  parentMap: Map<string, { parentId: string; parentName: string }>,
+  companyId?: string
 ): any[] {
   return rows.filter(row => {
     const clientId = String(row.clientId || "");
     const clientName = row.clientName || "";
-    const { companyName } = resolveCompany(clientId, clientName, parentMap);
-    return ALLOWED_COMPANIES.has(companyName);
+    const { companyId: resolvedCompanyId, companyName } = resolveCompany(clientId, clientName, parentMap);
+    
+    // 1. 检查是否在允许的公司列表中
+    if (!ALLOWED_COMPANIES.has(companyName)) return false;
+    
+    // 2. 如果指定了 companyId，进一步过滤
+    if (companyId && resolvedCompanyId !== companyId && companyName !== companyId) {
+      return false;
+    }
+    
+    return true;
   });
 }
 
@@ -236,8 +246,8 @@ async function getCostOverview(ctx: any, params: any) {
     if (m?.key) metricMap[m.key] = m.value ?? 0;
   }
 
-  // 过滤后汇总费用（只统计默认部门和咪咕正式）
-  const filteredRows = filterByAllowedDepartments(allRows, parentMap);
+  // 过滤后汇总费用（只统计默认部门和咪咕正式，如果指定了 companyId 则只统计该公司）
+  const filteredRows = filterByAllowedDepartments(allRows, parentMap, params.companyId);
   let totalCost = 0;
   for (const row of filteredRows) {
     totalCost += row.payableAmount || 0;
@@ -268,8 +278,8 @@ async function getCostTrend(ctx: any, params: any) {
     buildClientParentMap(ctx),
   ]);
   
-  // 过滤：只保留允许的公司
-  const filteredRows = filterByAllowedDepartments(allRows, parentMap);
+  // 过滤：只保留允许的公司（如果指定了 companyId 则只保留该公司）
+  const filteredRows = filterByAllowedDepartments(allRows, parentMap, params.companyId);
   
   // 按公司+日期分组汇总
   const companyDayMap = new Map<string, { date: string; company: string; cost: number }>();
@@ -535,8 +545,8 @@ async function getCompanyCostSummary(ctx: any, params: any) {
     buildClientParentMap(ctx),
   ]);
   
-  // 过滤：只保留默认部门和咪咕正式的数据
-  const filteredRows = filterByAllowedDepartments(allRows, parentMap);
+  // 过滤：只保留默认部门和咪咕正式的数据（如果指定了 companyId 则只保留该公司）
+  const filteredRows = filterByAllowedDepartments(allRows, parentMap, params.companyId);
   console.log(`breakdown 过滤: ${allRows.length} 条 → ${filteredRows.length} 条`);
   
   // 按公司分组汇总（使用过滤后的数据）
