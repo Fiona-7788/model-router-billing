@@ -1,12 +1,19 @@
 {
   "code": "billing_proxy",
   "name": "账单数据代理",
-  "description": "代理调用阿里云 Model Router 计费管理 API，安全获取账单数据",
-  "definitionJson": {
-    "version": "function_v1",
-    "runtimeMode": "trusted_node"
-  },
+  "description": "代理调用阿里云 AiContent (Model Router) 计费管理 API",
   "sourceFile": "src/functions/billing_proxy/index.ts",
+  "definitionJson": {
+    "kind": "app_function",
+    "version": "function_v2",
+    "runtimeMode": "trusted_node",
+    "runtimeContractVersion": "trusted_node_v2",
+    "runtimeInvoke": {
+      "audience": {
+        "type": "authenticated"
+      }
+    }
+  },
   "secretRefs": [
     { "name": "ALIYUN_ACCESS_KEY_ID", "required": true },
     { "name": "ALIYUN_ACCESS_KEY_SECRET", "required": true }
