@@ -1,18 +1,20 @@
 /**
  * Billing Proxy Function
  * 
- * 代理调用阿里云 Model Router 计费管理 API
+ * 代理调用阿里云 AiContent (Model Router) 计费管理 API
  * 所有敏感凭证通过 secretRefs 安全获取，不在代码中硬编码
  * 
  * API 文档参考：
- * - https://help.aliyun.com/document_detail/3030523.html (ModelRouterBillingCostTabs)
- * - https://help.aliyun.com/document_detail/3030531.html (ModelRouterQueryCostOverviewMetrics)
+ * - https://api.aliyun.com/document/AiContent/20240611/
+ * - 端点: aicontent.aliyuncs.com  版本: 20240611  签名: ROA v1 (HMAC-SHA1)
  */
 
 import crypto from "crypto";
 
-// 阿里云 Model Router API 配置
-const MODEL_ROUTER_API_BASE = "https://model-router-console.edu-aliyun.com/api/v1";
+// 阿里云 AiContent API 配置
+const API_HOST = "aicontent.aliyuncs.com";
+const API_BASE = `https://${API_HOST}`;
+const API_VERSION = "20240611";
 
 /**
  * 从 secrets 获取阿里云凭证
@@ -31,92 +33,104 @@ async function getAliyunCredentials(ctx: any) {
 }
 
 /**
- * 构建阿里云 API 签名（HMAC-SHA1）
- * 参考阿里云 OpenAPI 签名规范
+ * 阿里云 ROA v1 签名 (HMAC-SHA1)
+ * StringToSign = METHOD
+Accept
+Content-MD5
+Content-Type
+Date
+CanonicalizedHeaders
+CanonicalizedResource
  */
-function generateSignature(
+function signROA(
   accessKeySecret: string,
   method: string,
   path: string,
-  params: Record<string, string>
+  headers: Record<string, string>,
+  queryParams: Record<string, string>
 ): string {
-  // 使用 Web Crypto API (Node.js 18+ 全局可用)
-  const sortedKeys = Object.keys(params).sort();
-  const canonicalizedQueryString = sortedKeys
-    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
-    .join("&");
+  // CanonicalizedHeaders: x-acs-* 头，小写 key，按字母排序
+  const acsHeaders: Record<string, string> = {};
+  Object.keys(headers)
+    .filter(k => k.toLowerCase().startsWith("x-acs-"))
+    .forEach(k => { acsHeaders[k.toLowerCase()] = String(headers[k]).trim(); });
+  const canonicalHeaders = Object.keys(acsHeaders)
+    .sort()
+    .map(k => `${k}:${acsHeaders[k]}`)
+    .join("\n");
 
-  const stringToSign = `${method}&${encodeURIComponent(path)}&${encodeURIComponent(canonicalizedQueryString)}`;
+  // CanonicalizedResource: path + 排序后的 query string
+  const sortedQKeys = Object.keys(queryParams).sort();
+  const canonicalQS = sortedQKeys.map(k => `${k}=${queryParams[k]}`).join("&");
+  const canonicalResource = path + (canonicalQS ? `?${canonicalQS}` : "");
 
-  const hmac = crypto.createHmac("sha1", accessKeySecret + "&");
+  // StringToSign
+  const stringToSign = [
+    method,
+    headers["Accept"] || "*/*",
+    headers["Content-MD5"] || "",
+    headers["Content-Type"] || "",
+    headers["Date"] || "",
+    canonicalHeaders,
+    canonicalResource,
+  ].join("\n");
+
+  const hmac = crypto.createHmac("sha1", accessKeySecret);
   hmac.update(stringToSign);
   return hmac.digest("base64");
 }
 
-
 /**
- * 调用阿里云 Model Router API
+ * 调用阿里云 AiContent (Model Router) API
+ * 使用 ROA v1 签名，端点 aicontent.aliyuncs.com
  */
 async function callModelRouterAPI(
   ctx: any,
   path: string,
   params: Record<string, unknown> = {},
-  method: "GET" | "POST" = "GET"
+  action: string = "ModelRouterQueryClientList"
 ) {
   const { accessKeyId, accessKeySecret } = await getAliyunCredentials(ctx);
-  
-  // 构建查询字符串
-  const queryParams = new URLSearchParams();
+
+  // 构建 query params (string values)
+  const queryParams: Record<string, string> = {};
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined && value !== null) {
-      queryParams.set(key, String(value));
+      queryParams[key] = String(value);
     }
   });
-  
-  const queryString = queryParams.toString();
-  const url = `${MODEL_ROUTER_API_BASE}${path}${queryString ? "?" + queryString : ""}`;
-  
-  // 构建签名参数
-  const signParams: Record<string, string> = {
-    AccessKeyId: accessKeyId,
-    Timestamp: new Date().toISOString(),
-    SignatureMethod: "HMAC-SHA1",
-    SignatureVersion: "1.0",
-  };
-  Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined && value !== null) {
-      signParams[key] = String(value);
-    }
-  });
-  
-  const signature = generateSignature(accessKeySecret, method, path, signParams);
-  
+
+  const date = new Date().toUTCString();
   const headers: Record<string, string> = {
+    "Accept": "*/*",
     "Content-Type": "application/json",
-    "Authorization": `ACS ${accessKeyId}:${signature}`,
+    "Date": date,
+    "x-acs-action": action,
+    "x-acs-version": API_VERSION,
+    "x-acs-date": date,
+    "x-acs-signature-method": "HMAC-SHA1",
+    "x-acs-signature-version": "1.0",
+    "x-acs-signature-nonce": crypto.randomUUID(),
   };
-  
-  console.log(`Calling Model Router API: ${method} ${url}`);
-  
+
+  const signature = signROA(accessKeySecret, "GET", path, headers, queryParams);
+  headers["Authorization"] = `acs ${accessKeyId}:${signature}`;
+
+  const queryString = new URLSearchParams(queryParams).toString();
+  const url = `${API_BASE}${path}${queryString ? `?${queryString}` : ""}`;
+
+  console.log(`Calling ${action}: GET ${path}`);
+
   try {
-    const response = await fetch(url, {
-      method,
-      headers,
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-    
+    const response = await fetch(url, { method: "GET", headers });
     const data = await response.json();
-    console.log("API response status:", response.status);
+    if (data.success === false) {
+      throw new Error(`API 错误: ${data.message || data.errMessage || "未知错误"}`);
+    }
     return data;
   } catch (error: any) {
-    console.error("调用 Model Router API 失败:", {
-      url,
-      error: error?.message,
-    });
-    throw new Error(`API 调用失败: ${error?.message || "未知错误"}`);
+    console.error(`调用 ${action} 失败:`, error?.message);
+    throw new Error(`${action} 调用失败: ${error?.message || "未知错误"}`);
   }
 }
 
@@ -125,28 +139,59 @@ async function callModelRouterAPI(
  * API: GET /api/v1/modelRouter/open/billing/cost/tabs
  */
 async function getBillingCostTabs(ctx: any) {
-  const data = await callModelRouterAPI(ctx, "/modelRouter/open/billing/cost/tabs");
+  const data = await callModelRouterAPI(ctx, "/api/v1/modelRouter/open/billing/cost/tabs", {}, "ModelRouterQueryBillingCostTabs");
   return data?.data || [];
 }
 
 /**
  * 获取费用概览指标
- * API: GET /api/v1/modelRouter/open/billing/cost/overview
+ * 组合 overview API（调用次数/token）和 breakdown API（费用）
  */
 async function getCostOverview(ctx: any, params: any) {
   const now = Math.floor(Date.now() / 1000);
-  const startTime = params.startTime || now - 86400 * 30; // 默认最近30天
+  const startTime = params.startTime || now - 86400 * 30;
   const endTime = params.endTime || now;
-  
-  const data = await callModelRouterAPI(ctx, "/modelRouter/open/billing/cost/overview", {
-    startTime,
-    endTime,
-    modelTypes: params.modelTypes,
-    clientId: params.clientId,
-    apiKeyId: params.apiKeyId,
-    memberUserIds: params.memberUserIds,
-  });
-  return data?.data || [];
+
+  // 并发获取 overview 指标和 breakdown 费用数据
+  const [overviewData, breakdownData] = await Promise.all([
+    callModelRouterAPI(ctx, "/api/v1/modelRouter/open/billing/cost/overview", {
+      startTime,
+      endTime,
+      modelTypes: params.modelTypes,
+      clientId: params.clientId,
+      apiKeyId: params.apiKeyId,
+      memberUserIds: params.memberUserIds,
+    }, "ModelRouterQueryCostOverviewMetrics"),
+    callModelRouterAPI(ctx, "/api/v1/modelRouter/open/billing/cost/breakdown", {
+      startTime,
+      endTime,
+      granularity: "daily",
+      pageSize: 500,
+    }, "ModelRouterQueryBillingCostBreakdown"),
+  ]);
+
+  // overview 返回 [{key, label, value, unit}]
+  const metrics = overviewData?.data || [];
+  const metricMap: Record<string, number> = {};
+  for (const m of metrics) {
+    if (m?.key) metricMap[m.key] = m.value ?? 0;
+  }
+
+  // 从 breakdown 汇总费用
+  const rows = breakdownData?.data?.rows || [];
+  let totalCost = 0;
+  for (const row of rows) {
+    totalCost += row.payableAmount || 0;
+  }
+
+  return {
+    metrics,
+    totalCost,
+    totalCalls: metricMap.total_calls || 0,
+    totalTokens: metricMap.total_tokens || 0,
+    modelCount: metricMap.model_count || 0,
+    avgTokens: metricMap.avg_tokens || 0,
+  };
 }
 
 /**
@@ -167,12 +212,12 @@ async function getCostTrend(ctx: any, params: any) {
   const clientTrends = await Promise.all(
     clients.map(async (client: any) => {
       try {
-        const data = await callModelRouterAPI(ctx, "/modelRouter/open/billing/cost/trend", {
+        const data = await callModelRouterAPI(ctx, "/api/v1/modelRouter/open/billing/cost/trend", {
           startTime,
           endTime,
           clientId: client.id,
           granularity,
-        });
+        }, "ModelRouterQueryCostTrendMetrics");
         
         const points = data?.data?.points || [];
         return {
@@ -187,15 +232,22 @@ async function getCostTrend(ctx: any, params: any) {
   );
   
   // 转换为前端期望的格式: [{date, company, cost}]
+  // 趋势 API 返回 total_calls / total_tokens / avg_tokens，无费用数据
+  // 使用 total_calls 作为趋势指标
   const result: Array<{date: string; company: string; cost: number}> = [];
   
   for (const { clientName, points } of clientTrends) {
     for (const point of points) {
       const ts = point.timestamp;
       const dateStr = new Date(ts * 1000).toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit" });
-      const cost = point.values?.total_amount || 0;
-      if (cost > 0) {
-        result.push({ date: dateStr, company: clientName, cost });
+      // values 可能是 JSON 字符串或对象
+      let vals = point.values;
+      if (typeof vals === "string") {
+        try { vals = JSON.parse(vals); } catch { vals = {}; }
+      }
+      const calls = vals?.total_calls || 0;
+      if (calls > 0) {
+        result.push({ date: dateStr, company: clientName, cost: calls });
       }
     }
   }
@@ -212,35 +264,36 @@ async function getModelCostList(ctx: any, params: any) {
   const startTime = params.startTime || now - 86400 * 30;
   const endTime = params.endTime || now;
   
-  const data = await callModelRouterAPI(ctx, "/modelRouter/open/billing/cost/models", {
+  const data = await callModelRouterAPI(ctx, "/api/v1/modelRouter/open/billing/cost/models", {
     startTime,
     endTime,
     modelTypes: params.modelTypes,
     clientId: params.clientId,
     apiKeyId: params.apiKeyId,
     memberUserIds: params.memberUserIds,
-  });
+  }, "ModelRouterQueryCostModelList");
   return data?.data || [];
 }
 
 /**
  * 获取客户（公司/部门）列表
  * API: GET /api/v1/modelRouter/open/clients
+ * 使用 page-based 分页（pageSize 最大 100）
  */
 async function getClientList(ctx: any) {
   const allClients: any[] = [];
-  let nextToken: string | undefined;
-  
+  let page = 1;
+  const pageSize = 100;
+
   do {
-    const params: Record<string, unknown> = { pageSize: 100 };
-    if (nextToken) params.nextToken = nextToken;
-    
-    const data = await callModelRouterAPI(ctx, "/modelRouter/open/clients", params);
-    const list = data?.data?.list || data?.data || [];
+    const data = await callModelRouterAPI(ctx, "/api/v1/modelRouter/open/clients", { page, pageSize }, "ModelRouterQueryClientList");
+    const list = data?.data?.list || [];
     allClients.push(...list);
-    nextToken = data?.data?.nextToken;
-  } while (nextToken);
-  
+    const total = data?.data?.total || 0;
+    if (allClients.length >= total || list.length < pageSize) break;
+    page++;
+  } while (page <= 10); // 安全上限
+
   return allClients;
 }
 
@@ -253,49 +306,39 @@ async function getCompanyCostSummary(ctx: any, params: any) {
   const startTime = params.startTime || now - 86400 * 30;
   const endTime = params.endTime || now;
   
-  // 获取所有客户
-  const clients = await getClientList(ctx);
+  // 获取 breakdown 数据，按客户汇总费用
+  const data = await callModelRouterAPI(ctx, "/api/v1/modelRouter/open/billing/cost/breakdown", {
+    startTime,
+    endTime,
+    granularity: "daily",
+    pageSize: 500,
+  }, "ModelRouterQueryBillingCostBreakdown");
   
-  // 并发获取每个客户的费用概览
-  const results = await Promise.all(
-    clients.map(async (client: any) => {
-      try {
-        const overviewData = await callModelRouterAPI(ctx, "/modelRouter/open/billing/cost/overview", {
-          startTime,
-          endTime,
-          clientId: client.id,
-        });
-        
-        // overview 返回 [{key, label, value, unit}] 数组
-        const metrics = overviewData?.data || [];
-        const metricMap: Record<string, number> = {};
-        for (const m of metrics) {
-          metricMap[m.key] = m.value ?? 0;
-        }
-        
-        return {
-          companyId: String(client.id),
-          companyName: client.name || `客户${client.id}`,
-          totalCost: metricMap.total_amount || 0,
-          totalCalls: metricMap.total_calls || 0,
-          totalTokens: (metricMap.total_input_tokens || 0) + (metricMap.total_output_tokens || 0),
-          modelBreakdown: [],
-        };
-      } catch (error) {
-        console.error(`获取客户 ${client.name} 费用失败:`, error);
-        return {
-          companyId: String(client.id),
-          companyName: client.name || `客户${client.id}`,
-          totalCost: 0,
-          totalCalls: 0,
-          totalTokens: 0,
-          modelBreakdown: [],
-        };
-      }
-    })
-  );
+  const rows = data?.data?.rows || [];
   
-  return results;
+  // 按客户分组汇总
+  const clientMap = new Map<string, { companyId: string; companyName: string; totalCost: number; totalCalls: number; totalTokens: number }>();
+  
+  for (const row of rows) {
+    const clientId = String(row.clientId || "unknown");
+    const clientName = row.clientName || `客户${clientId}`;
+    
+    if (!clientMap.has(clientId)) {
+      clientMap.set(clientId, { companyId: clientId, companyName: clientName, totalCost: 0, totalCalls: 0, totalTokens: 0 });
+    }
+    const entry = clientMap.get(clientId)!;
+    entry.totalCost += row.payableAmount || 0;
+    
+    // values 可能是 JSON 字符串
+    let vals = row.values;
+    if (typeof vals === "string") {
+      try { vals = JSON.parse(vals); } catch { vals = {}; }
+    }
+    entry.totalCalls += vals?.total_calls || 0;
+    entry.totalTokens += (vals?.input_tokens || 0) + (vals?.output_tokens || 0);
+  }
+  
+  return Array.from(clientMap.values());
 }
 
 /**
@@ -310,14 +353,15 @@ async function getCallSources(ctx: any, params: any) {
   const breakdownParams: Record<string, unknown> = {
     startTime,
     endTime,
+    granularity: params.granularity || "daily",
     clientId: params.clientId,
     apiKeyId: params.apiKeyId,
     memberUserIds: params.memberUserIds,
-    maxResults: params.pageSize || 20,
-    nextToken: params.nextToken,
+    pageSize: params.pageSize || 20,
+    page: params.page || 1,
   };
   
-  const data = await callModelRouterAPI(ctx, "/modelRouter/open/billing/cost/breakdown", breakdownParams);
+  const data = await callModelRouterAPI(ctx, "/api/v1/modelRouter/open/billing/cost/breakdown", breakdownParams, "ModelRouterQueryBillingCostBreakdown");
   
   // breakdown 可能返回分页数据
   const items = data?.data?.list || data?.data?.rows || data?.data || [];

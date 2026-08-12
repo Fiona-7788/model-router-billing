@@ -202,22 +202,34 @@ function mockCallSources(params: CallSourcesParams): PaginatedResponse<CallSourc
 /*  API response mappers                                                */
 /* ------------------------------------------------------------------ */
 
-/** 将 API 返回的 metrics 数组 [{key, value}] 转换为 CostOverviewMetrics */
+/** 将 function 返回的 overview 数据转换为 CostOverviewMetrics */
 function mapOverviewResponse(raw: any): CostOverviewMetrics {
-  if (!Array.isArray(raw)) return { totalCost: 0, currentPeriodCost: 0, lastPeriodCost: 0, costChangeRate: 0, totalCalls: 0, totalTokens: 0 };
-  const m: Record<string, number> = {};
-  for (const item of raw) {
-    if (item?.key) m[item.key] = item.value ?? 0;
+  if (!raw) return { totalCost: 0, currentPeriodCost: 0, lastPeriodCost: 0, costChangeRate: 0, totalCalls: 0, totalTokens: 0 };
+  const totalCost = raw.totalCost ?? 0;
+  const totalCalls = raw.totalCalls ?? 0;
+  const totalTokens = raw.totalTokens ?? 0;
+  // 如果 API 返回 metrics 数组格式（兼容旧逻辑）
+  if (Array.isArray(raw.metrics)) {
+    const m: Record<string, number> = {};
+    for (const item of raw.metrics) {
+      if (item?.key) m[item.key] = item.value ?? 0;
+    }
+    return {
+      totalCost,
+      currentPeriodCost: totalCost,
+      lastPeriodCost: 0,
+      costChangeRate: 0,
+      totalCalls: totalCalls || m.total_calls || 0,
+      totalTokens: totalTokens || m.total_tokens || 0,
+    };
   }
-  const totalCost = m.total_amount ?? m.totalAmount ?? 0;
-  const lastCost = m.last_period_amount ?? m.lastPeriodAmount ?? totalCost;
   return {
     totalCost,
     currentPeriodCost: totalCost,
-    lastPeriodCost: lastCost,
-    costChangeRate: lastCost ? (totalCost - lastCost) / lastCost : 0,
-    totalCalls: m.total_calls ?? m.totalCalls ?? 0,
-    totalTokens: (m.total_input_tokens ?? m.totalInputTokens ?? 0) + (m.total_output_tokens ?? m.totalOutputTokens ?? 0),
+    lastPeriodCost: 0,
+    costChangeRate: 0,
+    totalCalls,
+    totalTokens,
   };
 }
 
@@ -229,30 +241,45 @@ function mapModelCostRow(row: any): ModelCostItem {
   } else if (row.values && typeof row.values === "object") {
     values = row.values;
   }
+  // 计算费用: input_price_cost + output_price_cost + thinking_output_price_cost + cached_input_price_cost 等
+  const cost = values.total_amount ?? values.totalAmount ??
+    (values.input_price_cost || 0) + (values.output_price_cost || 0) +
+    (values.thinking_output_price_cost || 0) + (values.cached_input_price_cost || 0) +
+    (values.cache_creation_input_price_cost || 0) + (values.web_search_cost || 0) +
+    (values.code_interpreter_cost || 0);
   return {
     model: row.modelName || row.modelCode || row.model || "未知模型",
     modelCategory: row.modelType || row.modelCategory || "未知类别",
-    totalCost: values.total_amount ?? values.totalAmount ?? 0,
+    totalCost: cost,
     totalCalls: values.total_calls ?? values.totalCalls ?? 0,
-    totalInputTokens: values.total_input_tokens ?? values.totalInputTokens ?? 0,
-    totalOutputTokens: values.total_output_tokens ?? values.totalOutputTokens ?? 0,
+    totalInputTokens: values.input_tokens ?? values.total_input_tokens ?? 0,
+    totalOutputTokens: values.output_tokens ?? values.total_output_tokens ?? 0,
   };
 }
 
 /** 将 API 返回的计费明细行转换为 CallSourceRecord */
 function mapBreakdownRow(row: any, index: number): CallSourceRecord {
+  // values 可能是 JSON 字符串
+  let values: Record<string, number> = {};
+  if (typeof row.values === "string") {
+    try { values = JSON.parse(row.values); } catch { values = {}; }
+  } else if (row.values && typeof row.values === "object") {
+    values = row.values;
+  }
+  const inputTokens = values.input_tokens ?? 0;
+  const outputTokens = values.output_tokens ?? 0;
   return {
     id: row.id || row.apiKeyId || `row-${index}`,
-    company: row.clientName || row.company || row.companyName || "未知",
+    company: row.clientName || row.company || "未知",
     model: row.modelName || row.modelCode || row.model || "未知",
     modelCategory: row.modelType || row.modelCategory || "未知",
-    calls: row.total_calls ?? row.calls ?? 0,
-    inputTokens: row.total_input_tokens ?? row.inputTokens ?? 0,
-    outputTokens: row.total_output_tokens ?? row.outputTokens ?? 0,
-    totalTokens: (row.total_input_tokens ?? row.inputTokens ?? 0) + (row.total_output_tokens ?? row.outputTokens ?? 0),
-    cost: row.total_amount ?? row.cost ?? row.amount ?? 0,
-    date: row.date || row.timestamp ? new Date((row.timestamp || 0) * 1000).toISOString().slice(0, 10) : "",
-    apiKeyId: row.apiKeyId || row.api_key_id || undefined,
+    calls: values.total_calls ?? row.total_calls ?? 0,
+    inputTokens,
+    outputTokens,
+    totalTokens: inputTokens + outputTokens,
+    cost: row.payableAmount ?? row.total_amount ?? row.cost ?? 0,
+    date: row.summaryTime ? new Date(row.summaryTime * 1000).toISOString().slice(0, 10) : "",
+    apiKeyId: row.apiKeyName || row.apiKeyId ? String(row.apiKeyId) : undefined,
   };
 }
 
