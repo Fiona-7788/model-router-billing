@@ -1,0 +1,8 @@
+{
+  "code": "public.register",
+  "title": "公开报名",
+  "kind": "page",
+  "pathPattern": "/view/:appType/public/register",
+  "publicAccess": "guest",
+  "publicPolicyCode": "public_register"
+}

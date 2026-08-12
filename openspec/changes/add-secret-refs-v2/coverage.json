@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "openxiangda-sdd-v2",
+  "changeId": "add-secret-refs-v2",
+  "generatedAt": "2026-08-12T01:55:11.008Z",
+  "resources": {
+    "forms": [],
+    "pages": [],
+    "functions": [],
+    "automations": [],
+    "workflows": [],
+    "jsCodeNodes": [],
+    "resources": false,
+    "runtime": true,
+    "backend": false,
+    "contracts": false,
+    "files": []
+  },
+  "requirements": [
+    {
+      "id": "req-secretrefs-v2",
+      "title": "添加 secretRefs v2",
+      "spec": "specs/app/spec.md",
+      "scenarios": [
+        {
+          "id": "main-path",
+          "title": "Main path",
+          "evidence": []
+        }
+      ],
+      "covers": {
+        "forms": [],
+        "pages": [],
+        "functions": [],
+        "automations": [],
+        "workflows": [],
+        "jsCodeNodes": [],
+        "resources": false,
+        "runtime": true,
+        "backend": false,
+        "contracts": false,
+        "files": []
+      }
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "roles": [
+    {
+      "code": "app_admin",
+      "name": "应用管理员",
+      "description": "可访问应用后台首页和后续扩展的管理页面"
+    },
+    {
+      "code": "security_auditor",
+      "name": "安全审计员",
+      "description": "可查看应用内登录日志页面和平台登录日志 API",
+      "apiPermissionCodes": ["app:login-log:read"]
+    }
+  ]
+}

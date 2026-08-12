@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "openxiangda-sdd-v2",
+  "changeId": "init",
+  "targets": {
+    "forms": [],
+    "pages": [],
+    "functions": [],
+    "automations": [],
+    "workflows": [],
+    "jsCodeNodes": [],
+    "resources": true,
+    "runtime": true,
+    "other": []
+  },
+  "changedFiles": [],
+  "commands": [],
+  "verifiedAt": null
+}

@@ -1,0 +1,70 @@
+{
+  "schemaVersion": "openxiangda-sdd-v2",
+  "changeId": "deploy-full",
+  "generatedAt": "2026-08-11T09:20:13.179Z",
+  "resources": {
+    "forms": [],
+    "pages": [],
+    "functions": [],
+    "automations": [],
+    "workflows": [],
+    "jsCodeNodes": [],
+    "files": [],
+    "resources": true,
+    "runtime": true,
+    "backend": false,
+    "contracts": false
+  },
+  "requirements": [
+    {
+      "id": "bundle-deploy-billing-proxy",
+      "title": "发布 billing-proxy function",
+      "spec": "specs/app/spec.md",
+      "scenarios": [
+        {
+          "id": "deploy-billing-proxy-merged",
+          "title": "deploy-billing-proxy is included in the mainline release",
+          "evidence": []
+        }
+      ],
+      "covers": {
+        "forms": [],
+        "pages": [],
+        "functions": [],
+        "automations": [],
+        "workflows": [],
+        "jsCodeNodes": [],
+        "files": [],
+        "resources": true,
+        "runtime": false,
+        "backend": false,
+        "contracts": false
+      }
+    },
+    {
+      "id": "bundle-activate-runtime",
+      "title": "激活 Runtime",
+      "spec": "specs/app/spec.md",
+      "scenarios": [
+        {
+          "id": "activate-runtime-merged",
+          "title": "activate-runtime is included in the mainline release",
+          "evidence": []
+        }
+      ],
+      "covers": {
+        "forms": [],
+        "pages": [],
+        "functions": [],
+        "automations": [],
+        "workflows": [],
+        "jsCodeNodes": [],
+        "files": [],
+        "resources": false,
+        "runtime": true,
+        "backend": false,
+        "contracts": false
+      }
+    }
+  ]
+}

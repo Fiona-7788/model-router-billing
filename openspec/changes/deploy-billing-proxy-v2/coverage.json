@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "openxiangda-sdd-v2",
+  "changeId": "deploy-billing-proxy-v2",
+  "generatedAt": "2026-08-12T01:40:46.002Z",
+  "resources": {
+    "forms": [],
+    "pages": [],
+    "functions": [],
+    "automations": [],
+    "workflows": [],
+    "jsCodeNodes": [],
+    "resources": true,
+    "runtime": false,
+    "backend": false,
+    "contracts": false,
+    "files": []
+  },
+  "requirements": [
+    {
+      "id": "req-billing-proxy-function-v2",
+      "title": "部署 billing-proxy function v2",
+      "spec": "specs/app/spec.md",
+      "scenarios": [
+        {
+          "id": "main-path",
+          "title": "Main path",
+          "evidence": []
+        }
+      ],
+      "covers": {
+        "forms": [],
+        "pages": [],
+        "functions": [],
+        "automations": [],
+        "workflows": [],
+        "jsCodeNodes": [],
+        "resources": true,
+        "runtime": false,
+        "backend": false,
+        "contracts": false,
+        "files": []
+      }
+    }
+  ]
+}

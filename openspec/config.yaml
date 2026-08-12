@@ -1,0 +1,19 @@
+schema: openxiangda-sdd-v2
+description: OpenXiangda native SDD workspace records inspired by OpenSpec.
+artifacts:
+  proposal: proposal.md
+  specs: specs/**/*.md
+  design: design.md
+  tasks: tasks.md
+  evidence: evidence.md
+  coverage: coverage.json
+  release: release.json
+  metadata: change.json
+rules:
+  requireApprovalForHighRisk: true
+  requireAffectedCoverage: true
+  requireCoverageManifest: true
+  requireScenarioEvidence: false
+  requireChecklistCompletion: false
+  releaseModel: publish-from-main-v1
+  archiveMergesDeltaSpecs: true

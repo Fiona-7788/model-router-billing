@@ -1,0 +1,5 @@
+node_modules/
+dist/
+.openxiangda/
+.DS_Store
+*.log

@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "openxiangda-sdd-v2",
+  "changeId": "runtime-deploy",
+  "generatedAt": "2026-08-11T08:48:01.420Z",
+  "resources": {
+    "forms": [],
+    "pages": [],
+    "functions": [],
+    "automations": [],
+    "workflows": [],
+    "jsCodeNodes": [],
+    "resources": false,
+    "runtime": true,
+    "backend": false,
+    "contracts": false,
+    "files": []
+  },
+  "requirements": [
+    {
+      "id": "req-runtime",
+      "title": "Runtime 前端部署",
+      "spec": "specs/app/spec.md",
+      "scenarios": [
+        {
+          "id": "main-path",
+          "title": "Main path",
+          "evidence": []
+        }
+      ],
+      "covers": {
+        "forms": [],
+        "pages": [],
+        "functions": [],
+        "automations": [],
+        "workflows": [],
+        "jsCodeNodes": [],
+        "resources": false,
+        "runtime": true,
+        "backend": false,
+        "contracts": false,
+        "files": []
+      }
+    }
+  ]
+}

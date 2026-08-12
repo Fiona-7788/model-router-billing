@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "openxiangda-sdd-v2",
+  "id": "configure-secrets",
+  "title": "配置阿里云凭证",
+  "status": "approved",
+  "riskLevel": "medium",
+  "createdAt": "2026-08-11T09:10:20.603Z",
+  "updatedAt": "2026-08-11T09:10:25.778Z",
+  "approvedAt": "2026-08-11T09:10:25.777Z",
+  "approvedBy": "fengyujing",
+  "approvalSummary": "配置阿里云 AK/SK 用于调用 Model Router API",
+  "affected": {
+    "forms": [],
+    "pages": [],
+    "functions": [],
+    "automations": [],
+    "workflows": [],
+    "jsCodeNodes": [],
+    "files": [],
+    "resources": true,
+    "runtime": false,
+    "backend": false,
+    "contracts": false
+  },
+  "release": {
+    "plannedCommands": [],
+    "lastVerifiedAt": null
+  },
+  "evidence": {
+    "files": [
+      "evidence.md"
+    ],
+    "bypasses": []
+  },
+  "sourceBase": {
+    "repo": "sha256:6342604c033e10a19edc95e861a4c0d8b745e6302f6345c21dfcd1eec3698500",
+    "baseCommit": "a00e045a8fbb7a53833f2d7a47662b7ae1e86e37",
+    "treeHash": "de8dfc49fa11c1a32299719b764323ba96be4c53"
+  }
+}

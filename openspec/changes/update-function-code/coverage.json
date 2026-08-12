@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "openxiangda-sdd-v2",
+  "changeId": "update-function-code",
+  "generatedAt": "2026-08-12T01:59:00.379Z",
+  "resources": {
+    "forms": [],
+    "pages": [],
+    "functions": [],
+    "automations": [],
+    "workflows": [],
+    "jsCodeNodes": [],
+    "resources": false,
+    "runtime": true,
+    "backend": false,
+    "contracts": false,
+    "files": []
+  },
+  "requirements": [
+    {
+      "id": "req-function",
+      "title": "更新 function 代码",
+      "spec": "specs/app/spec.md",
+      "scenarios": [
+        {
+          "id": "main-path",
+          "title": "Main path",
+          "evidence": []
+        }
+      ],
+      "covers": {
+        "forms": [],
+        "pages": [],
+        "functions": [],
+        "automations": [],
+        "workflows": [],
+        "jsCodeNodes": [],
+        "resources": false,
+        "runtime": true,
+        "backend": false,
+        "contracts": false,
+        "files": []
+      }
+    }
+  ]
+}

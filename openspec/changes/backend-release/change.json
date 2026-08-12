@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "openxiangda-sdd-v2",
+  "id": "backend-release",
+  "title": "Backend Release for billing-proxy",
+  "status": "approved",
+  "riskLevel": "medium",
+  "createdAt": "2026-08-11T09:22:37.742Z",
+  "updatedAt": "2026-08-11T09:22:40.974Z",
+  "approvedAt": "2026-08-11T09:22:40.973Z",
+  "approvedBy": "fengyujing",
+  "approvalSummary": "发布 billing-proxy function",
+  "affected": {
+    "forms": [],
+    "pages": [],
+    "functions": [],
+    "automations": [],
+    "workflows": [],
+    "jsCodeNodes": [],
+    "files": [],
+    "resources": true,
+    "runtime": false,
+    "backend": false,
+    "contracts": false
+  },
+  "release": {
+    "plannedCommands": [],
+    "lastVerifiedAt": null
+  },
+  "evidence": {
+    "files": [
+      "evidence.md"
+    ],
+    "bypasses": []
+  },
+  "sourceBase": {
+    "repo": "sha256:6342604c033e10a19edc95e861a4c0d8b745e6302f6345c21dfcd1eec3698500",
+    "baseCommit": "b691b2644615d175a82d2938977a8e7ac2cd4f82",
+    "treeHash": "3df2b36236ed31c64aa93fcb7d1feff7ff00a324"
+  }
+}

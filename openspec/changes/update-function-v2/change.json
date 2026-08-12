@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "openxiangda-sdd-v2",
+  "id": "update-function-v2",
+  "title": "更新 function 代码",
+  "status": "approved",
+  "riskLevel": "medium",
+  "createdAt": "2026-08-12T01:59:35.118Z",
+  "updatedAt": "2026-08-12T01:59:35.518Z",
+  "approvedAt": "2026-08-12T01:59:35.515Z",
+  "approvedBy": "fengyujing",
+  "approvalSummary": "更新 billing_proxy function",
+  "affected": {
+    "forms": [],
+    "pages": [],
+    "functions": [],
+    "automations": [],
+    "workflows": [],
+    "jsCodeNodes": [],
+    "files": [],
+    "resources": false,
+    "runtime": true,
+    "backend": false,
+    "contracts": false
+  },
+  "release": {
+    "plannedCommands": [],
+    "lastVerifiedAt": null
+  },
+  "evidence": {
+    "files": [
+      "evidence.md"
+    ],
+    "bypasses": []
+  },
+  "sourceBase": {
+    "repo": "sha256:6342604c033e10a19edc95e861a4c0d8b745e6302f6345c21dfcd1eec3698500",
+    "baseCommit": "4d143941d6cd33b288d4b8848a81b6e1c9afdc98",
+    "treeHash": "19e58d21b3ddedaffb6d27dc8198fa59ce4fed5d"
+  }
+}

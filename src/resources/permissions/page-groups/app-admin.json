@@ -1,0 +1,8 @@
+{
+  "code": "app_admin_spa_pages",
+  "name": "应用管理员页面权限",
+  "roles": ["app_admin", "security_auditor"],
+  "menuCodes": ["admin_dashboard", "admin_login_logs"],
+  "routeCodes": ["admin.dashboard", "admin.login_logs"],
+  "pathPatterns": ["/view/:appType/admin", "/view/:appType/admin/*"]
+}

@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "openxiangda-sdd-v2",
+  "id": "runtime-deploy-v2",
+  "title": "Runtime deploy 包含 function",
+  "status": "approved",
+  "riskLevel": "medium",
+  "createdAt": "2026-08-12T01:49:35.434Z",
+  "updatedAt": "2026-08-12T01:49:35.835Z",
+  "approvedAt": "2026-08-12T01:49:35.833Z",
+  "approvedBy": "fengyujing",
+  "approvalSummary": "部署包含 billing_proxy function 的完整 runtime",
+  "affected": {
+    "forms": [],
+    "pages": [],
+    "functions": [],
+    "automations": [],
+    "workflows": [],
+    "jsCodeNodes": [],
+    "files": [],
+    "resources": false,
+    "runtime": true,
+    "backend": false,
+    "contracts": false
+  },
+  "release": {
+    "plannedCommands": [],
+    "lastVerifiedAt": null
+  },
+  "evidence": {
+    "files": [
+      "evidence.md"
+    ],
+    "bypasses": []
+  },
+  "sourceBase": {
+    "repo": "sha256:6342604c033e10a19edc95e861a4c0d8b745e6302f6345c21dfcd1eec3698500",
+    "baseCommit": "9410a18c9c339f16a2b32fcc8687ab15e5e19bd4",
+    "treeHash": "93052ad4d80655cc113e3f770384d215760ff8e3"
+  }
+}

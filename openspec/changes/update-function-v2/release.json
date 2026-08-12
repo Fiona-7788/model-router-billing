@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "openxiangda-sdd-v2",
+  "changeId": "update-function-v2",
+  "targets": {
+    "forms": [],
+    "pages": [],
+    "functions": [],
+    "automations": [],
+    "workflows": [],
+    "jsCodeNodes": [],
+    "resources": false,
+    "runtime": true,
+    "other": []
+  },
+  "changedFiles": [],
+  "commands": [],
+  "verifiedAt": null,
+  "mainlinePolicy": "publish-from-main-v1",
+  "releaseSourceRevision": {
+    "repo": "sha256:6342604c033e10a19edc95e861a4c0d8b745e6302f6345c21dfcd1eec3698500",
+    "baseCommit": "4d143941d6cd33b288d4b8848a81b6e1c9afdc98",
+    "treeHash": "19e58d21b3ddedaffb6d27dc8198fa59ce4fed5d",
+    "branch": "main",
+    "remoteName": "origin",
+    "remoteUrlHash": "sha256:ef44ed468b235a0845b38995ceb0b0da4b613b88b2430c68fd8f40d3fa500b88",
+    "mainBranch": "main",
+    "mainTipCommit": "4d143941d6cd33b288d4b8848a81b6e1c9afdc98",
+    "capturedAt": "2026-08-12T02:00:11.005Z"
+  }
+}

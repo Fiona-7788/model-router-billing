@@ -1,0 +1,22 @@
+{
+  "menus": [
+    {
+      "code": "billing_dashboard",
+      "name": "账单看板",
+      "type": "nav",
+      "routeCode": "billing.dashboard",
+      "path": "/view/:appType/admin/billing",
+      "icon": "DollarSign",
+      "sortOrder": 5
+    },
+    {
+      "code": "billing_call_sources",
+      "name": "调取来源",
+      "type": "nav",
+      "routeCode": "billing.call_sources",
+      "path": "/view/:appType/admin/billing/call-sources",
+      "icon": "FileSearch",
+      "sortOrder": 6
+    }
+  ]
+}

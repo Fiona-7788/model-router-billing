@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "openxiangda-sdd-v2",
+  "id": "update-menus",
+  "title": "更新菜单配置",
+  "status": "approved",
+  "riskLevel": "medium",
+  "createdAt": "2026-08-11T09:36:13.769Z",
+  "updatedAt": "2026-08-11T09:36:18.047Z",
+  "approvedAt": "2026-08-11T09:36:18.045Z",
+  "approvedBy": "fengyujing",
+  "approvalSummary": "移除工作台和登录日志菜单，只保留账单相关菜单",
+  "affected": {
+    "forms": [],
+    "pages": [],
+    "functions": [],
+    "automations": [],
+    "workflows": [],
+    "jsCodeNodes": [],
+    "files": [],
+    "resources": true,
+    "runtime": false,
+    "backend": false,
+    "contracts": false
+  },
+  "release": {
+    "plannedCommands": [],
+    "lastVerifiedAt": null
+  },
+  "evidence": {
+    "files": [
+      "evidence.md"
+    ],
+    "bypasses": []
+  },
+  "sourceBase": {
+    "repo": "sha256:6342604c033e10a19edc95e861a4c0d8b745e6302f6345c21dfcd1eec3698500",
+    "baseCommit": "deaf3c1ba6b4097f2eb6950f6df7f0803d0f3071",
+    "treeHash": "a62608941f8a79068e32182041b8976a8c6cf506"
+  }
+}

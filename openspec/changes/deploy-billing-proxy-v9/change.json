@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "openxiangda-sdd-v2",
+  "id": "deploy-billing-proxy-v9",
+  "title": "部署 billing_proxy function (v9)",
+  "status": "approved",
+  "riskLevel": "medium",
+  "createdAt": "2026-08-12T01:52:10.231Z",
+  "updatedAt": "2026-08-12T01:52:10.626Z",
+  "approvedAt": "2026-08-12T01:52:10.624Z",
+  "approvedBy": "fengyujing",
+  "approvalSummary": "部署 billing_proxy function",
+  "affected": {
+    "forms": [],
+    "pages": [],
+    "functions": [],
+    "automations": [],
+    "workflows": [],
+    "jsCodeNodes": [],
+    "files": [],
+    "resources": false,
+    "runtime": true,
+    "backend": false,
+    "contracts": false
+  },
+  "release": {
+    "plannedCommands": [],
+    "lastVerifiedAt": null
+  },
+  "evidence": {
+    "files": [
+      "evidence.md"
+    ],
+    "bypasses": []
+  },
+  "sourceBase": {
+    "repo": "sha256:6342604c033e10a19edc95e861a4c0d8b745e6302f6345c21dfcd1eec3698500",
+    "baseCommit": "9ed30291500feb238c63b3d0e83366f7d28c5829",
+    "treeHash": "05930439e99b022aadf35334daa3e91fbd9c9163"
+  }
+}

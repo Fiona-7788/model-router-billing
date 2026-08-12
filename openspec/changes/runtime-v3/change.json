@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "openxiangda-sdd-v2",
+  "id": "runtime-v3",
+  "title": "Runtime v3",
+  "status": "approved",
+  "riskLevel": "medium",
+  "createdAt": "2026-08-11T08:54:57.284Z",
+  "updatedAt": "2026-08-11T08:54:57.501Z",
+  "approvedAt": "2026-08-11T08:54:57.499Z",
+  "approvedBy": "fengyujing",
+  "approvalSummary": "用户确认 Runtime v3",
+  "affected": {
+    "forms": [],
+    "pages": [],
+    "functions": [],
+    "automations": [],
+    "workflows": [],
+    "jsCodeNodes": [],
+    "files": [],
+    "resources": false,
+    "runtime": true,
+    "backend": false,
+    "contracts": false
+  },
+  "release": {
+    "plannedCommands": [],
+    "lastVerifiedAt": null
+  },
+  "evidence": {
+    "files": [
+      "evidence.md"
+    ],
+    "bypasses": []
+  },
+  "sourceBase": {
+    "repo": "sha256:6342604c033e10a19edc95e861a4c0d8b745e6302f6345c21dfcd1eec3698500",
+    "baseCommit": "85deeef54c6c6ea754d4d30e3b4c5cad410c084f",
+    "treeHash": "9bd99ed09922f6378813ebe1c980e0a6f0ce9e3f"
+  }
+}

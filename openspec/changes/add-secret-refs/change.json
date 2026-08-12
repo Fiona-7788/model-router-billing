@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "openxiangda-sdd-v2",
+  "id": "add-secret-refs",
+  "title": "添加 secretRefs 到 billing_proxy",
+  "status": "approved",
+  "riskLevel": "medium",
+  "createdAt": "2026-08-12T01:54:22.925Z",
+  "updatedAt": "2026-08-12T01:54:23.321Z",
+  "approvedAt": "2026-08-12T01:54:23.318Z",
+  "approvedBy": "fengyujing",
+  "approvalSummary": "添加 secretRefs",
+  "affected": {
+    "forms": [],
+    "pages": [],
+    "functions": [],
+    "automations": [],
+    "workflows": [],
+    "jsCodeNodes": [],
+    "files": [],
+    "resources": false,
+    "runtime": true,
+    "backend": false,
+    "contracts": false
+  },
+  "release": {
+    "plannedCommands": [],
+    "lastVerifiedAt": null
+  },
+  "evidence": {
+    "files": [
+      "evidence.md"
+    ],
+    "bypasses": []
+  },
+  "sourceBase": {
+    "repo": "sha256:6342604c033e10a19edc95e861a4c0d8b745e6302f6345c21dfcd1eec3698500",
+    "baseCommit": "5f11995a1632000fc21c853cfb76ddf7180dbcf4",
+    "treeHash": "4d9e595168df1cacd2370917b0e33829dfbac470"
+  }
+}

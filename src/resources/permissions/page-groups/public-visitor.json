@@ -1,0 +1,8 @@
+{
+  "code": "public_visitor_pages",
+  "name": "外部访问页面权限",
+  "roles": ["external_visitor"],
+  "menuCodes": [],
+  "routeCodes": ["public.register"],
+  "pathPatterns": ["/view/:appType/public/register"]
+}

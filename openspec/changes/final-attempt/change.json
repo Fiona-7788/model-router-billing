@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "openxiangda-sdd-v2",
+  "id": "final-attempt",
+  "title": "最终尝试创建 billing_proxy",
+  "status": "approved",
+  "riskLevel": "medium",
+  "createdAt": "2026-08-12T01:57:44.925Z",
+  "updatedAt": "2026-08-12T01:57:45.315Z",
+  "approvedAt": "2026-08-12T01:57:45.313Z",
+  "approvedBy": "fengyujing",
+  "approvalSummary": "创建 billing_proxy function with secretRefs",
+  "affected": {
+    "forms": [],
+    "pages": [],
+    "functions": [],
+    "automations": [],
+    "workflows": [],
+    "jsCodeNodes": [],
+    "files": [],
+    "resources": false,
+    "runtime": true,
+    "backend": false,
+    "contracts": false
+  },
+  "release": {
+    "plannedCommands": [],
+    "lastVerifiedAt": null
+  },
+  "evidence": {
+    "files": [
+      "evidence.md"
+    ],
+    "bypasses": []
+  },
+  "sourceBase": {
+    "repo": "sha256:6342604c033e10a19edc95e861a4c0d8b745e6302f6345c21dfcd1eec3698500",
+    "baseCommit": "b6dc0b455ef90bd78ab9dea65f949281b3d77e37",
+    "treeHash": "90db959b2f08c01a3f82ee2636de188bc8402611"
+  }
+}
