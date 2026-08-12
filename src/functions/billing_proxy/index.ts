@@ -249,11 +249,16 @@ function filterByAllowedDepartments(
 /**
  * 获取费用概览指标
  * 组合 overview API（调用次数/token）和 breakdown API（费用）
+ * totalCost 返回今日费用，totalCalls/totalTokens 返回周期累计
  */
 async function getCostOverview(ctx: any, params: any) {
   const now = Math.floor(Date.now() / 1000);
   const startTime = params.startTime || now - 86400 * 30;
   const endTime = params.endTime || now;
+  
+  // 今日时间范围
+  const todayStart = Math.floor(now / 86400) * 86400; // 今天 00:00:00 UTC
+  const todayEnd = todayStart + 86400; // 明天 00:00:00 UTC
 
   // 并发获取 overview 指标和全部 breakdown 费用数据
   const [overviewData, allRows, parentMap] = await Promise.all([
@@ -278,26 +283,32 @@ async function getCostOverview(ctx: any, params: any) {
 
   // 过滤后汇总费用、调用次数、Token（只统计默认部门和咪咕正式，如果指定了 companyId/modelCategory 则进一步过滤）
   const filteredRows = filterByAllowedDepartments(allRows, parentMap, params.companyId, params.modelCategory);
-  let totalCost = 0;
-  let totalCalls = 0;
-  let totalTokens = 0;
+  
+  // 计算今日费用和周期累计
+  let todayCost = 0;
+  let periodCalls = 0;
+  let periodTokens = 0;
   for (const row of filteredRows) {
-    totalCost += row.payableAmount || 0;
+    const ts = row.summaryTime || row.timestamp;
+    if (ts && ts >= todayStart && ts < todayEnd) {
+      todayCost += row.payableAmount || 0;
+    }
+    
     let vals = row.values;
     if (typeof vals === "string") {
       try { vals = JSON.parse(vals); } catch { vals = {}; }
     }
-    totalCalls += vals?.total_calls || 0;
-    totalTokens += (vals?.input_tokens || 0) + (vals?.output_tokens || 0);
+    periodCalls += vals?.total_calls || 0;
+    periodTokens += (vals?.input_tokens || 0) + (vals?.output_tokens || 0);
   }
 
   return {
     metrics,
-    totalCost,
-    totalCalls,
-    totalTokens,
+    totalCost: todayCost, // 今日费用
+    totalCalls: periodCalls, // 周期累计调用次数
+    totalTokens: periodTokens, // 周期累计 Token
     modelCount: metricMap.model_count || 0,
-    avgTokens: totalCalls > 0 ? Math.round(totalTokens / totalCalls) : 0,
+    avgTokens: periodCalls > 0 ? Math.round(periodTokens / periodCalls) : 0,
   };
 }
 
