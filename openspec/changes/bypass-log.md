@@ -285,3 +285,10 @@
 - targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
 - followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
 - user: fengyujing
+## 2026-08-12T05:10:42.160Z
+
+- command: openxiangda runtime deploy
+- reason: Update frontend to use company-grouped billing data
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing

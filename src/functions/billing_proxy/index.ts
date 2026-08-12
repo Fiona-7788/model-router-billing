@@ -144,6 +144,35 @@ async function getBillingCostTabs(ctx: any) {
 }
 
 /**
+ * 分页获取全部 breakdown 数据
+ * API 单次最多返回 500 条，需要分页获取
+ */
+async function fetchAllBreakdownRows(
+  ctx: any,
+  params: Record<string, unknown>
+): Promise<any[]> {
+  const allRows: any[] = [];
+  let page = 1;
+  const pageSize = 500;
+
+  do {
+    const data = await callModelRouterAPI(
+      ctx,
+      "/api/v1/modelRouter/open/billing/cost/breakdown",
+      { ...params, pageSize, page },
+      "ModelRouterQueryBillingCostBreakdown"
+    );
+    const rows = data?.data?.rows || [];
+    allRows.push(...rows);
+    const total = data?.data?.total || 0;
+    if (allRows.length >= total || rows.length < pageSize) break;
+    page++;
+  } while (page <= 10);
+
+  return allRows;
+}
+
+/**
  * 获取费用概览指标
  * 组合 overview API（调用次数/token）和 breakdown API（费用）
  */
@@ -152,8 +181,8 @@ async function getCostOverview(ctx: any, params: any) {
   const startTime = params.startTime || now - 86400 * 30;
   const endTime = params.endTime || now;
 
-  // 并发获取 overview 指标和 breakdown 费用数据
-  const [overviewData, breakdownData] = await Promise.all([
+  // 并发获取 overview 指标和全部 breakdown 费用数据
+  const [overviewData, allRows] = await Promise.all([
     callModelRouterAPI(ctx, "/api/v1/modelRouter/open/billing/cost/overview", {
       startTime,
       endTime,
@@ -162,12 +191,7 @@ async function getCostOverview(ctx: any, params: any) {
       apiKeyId: params.apiKeyId,
       memberUserIds: params.memberUserIds,
     }, "ModelRouterQueryCostOverviewMetrics"),
-    callModelRouterAPI(ctx, "/api/v1/modelRouter/open/billing/cost/breakdown", {
-      startTime,
-      endTime,
-      granularity: "daily",
-      pageSize: 500,
-    }, "ModelRouterQueryBillingCostBreakdown"),
+    fetchAllBreakdownRows(ctx, { startTime, endTime, granularity: "daily" }),
   ]);
 
   // overview 返回 [{key, label, value, unit}]
@@ -177,10 +201,9 @@ async function getCostOverview(ctx: any, params: any) {
     if (m?.key) metricMap[m.key] = m.value ?? 0;
   }
 
-  // 从 breakdown 汇总费用
-  const rows = breakdownData?.data?.rows || [];
+  // 从全部 breakdown 汇总费用
   let totalCost = 0;
-  for (const row of rows) {
+  for (const row of allRows) {
     totalCost += row.payableAmount || 0;
   }
 
@@ -242,9 +265,15 @@ async function getCostTrend(ctx: any, params: any) {
   
   // 按公司分组聚合趋势数据
   // 同一公司下的多个散户，同一天的 calls 累加
+  // 咪咕用户散户统一归到"咪咕数媒"
   const companyDayMap = new Map<string, { date: string; company: string; cost: number }>();
   
-  for (const { companyName, points } of allTrends) {
+  for (const { clientId, companyName, points } of allTrends) {
+    // 确定该公司名
+    const parentInfo = parentMap.get(clientId);
+    const resolvedCompany = parentInfo?.parentName || 
+      (companyName.includes("咪咕用户") ? "咪咕数媒" : companyName);
+    
     for (const point of points) {
       const ts = point.timestamp;
       const dateStr = new Date(ts * 1000).toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit" });
@@ -254,9 +283,9 @@ async function getCostTrend(ctx: any, params: any) {
       }
       const calls = vals?.total_calls || 0;
       if (calls > 0) {
-        const key = `${companyName}|${dateStr}`;
+        const key = `${resolvedCompany}|${dateStr}`;
         if (!companyDayMap.has(key)) {
-          companyDayMap.set(key, { date: dateStr, company: companyName, cost: 0 });
+          companyDayMap.set(key, { date: dateStr, company: resolvedCompany, cost: 0 });
         }
         companyDayMap.get(key)!.cost += calls;
       }
@@ -309,6 +338,37 @@ async function getClientList(ctx: any) {
 }
 
 /**
+ * 判断 clientName 是否是散户（咪咕用户等个人级别用户）
+ * 散户应该归到父级公司名下，不单独显示
+ */
+function isIndividualClient(name: string): boolean {
+  if (!name) return false;
+  return name.includes("咪咕用户");
+}
+
+/**
+ * 根据 clientId 和 clientName 确定所属公司
+ * 优先查 parentMap，其次按名称模式匹配
+ */
+function resolveCompany(
+  clientId: string,
+  clientName: string,
+  parentMap: Map<string, { parentId: string; parentName: string }>
+): { companyId: string; companyName: string } {
+  // 1. 优先查 parentMap（叶子节点归到父级公司）
+  const parentInfo = parentMap.get(clientId);
+  if (parentInfo) {
+    return { companyId: parentInfo.parentId, companyName: parentInfo.parentName };
+  }
+  // 2. 名称模式匹配：咪咕用户 → 咪咕数媒
+  if (isIndividualClient(clientName)) {
+    return { companyId: "migu", companyName: "咪咕数媒" };
+  }
+  // 3. 本身就是公司级节点
+  return { companyId: clientId, companyName: clientName || `客户${clientId}` };
+}
+
+/**
  * 构建 clientId → parentId 映射，并推断父级公司名称
  * API 只返回叶子节点(L3/L4)，父级节点(L1/L2)不在返回列表中
  * 通过子节点名称模式推断父级公司名
@@ -327,25 +387,15 @@ async function buildClientParentMap(ctx: any): Promise<Map<string, { parentId: s
 
   // 推断父级名称
   for (const [pid, names] of parentChildren) {
-    // 如果所有子节点名称都以相同前缀开头（如 "咪咕用户-"），用该前缀推断公司名
-    const knownCompanies: Record<string, string> = {
-      "9410": "咪咕数媒",
-      "20601": "咪咕数媒",
-      "9263": "咪咕数媒",
-      "10769": "咪咕数媒",
-      "8648": "咪咕数媒",
-      "20510": "咪咕数媒",
-    };
-
-    const parentName = knownCompanies[pid] || (() => {
-      // 检查子节点是否有共同前缀
-      if (names.length > 0 && names.every(n => n.includes("咪咕用户"))) {
-        return "咪咕数媒";
-      }
+    // 如果子节点名称包含 "咪咕用户"，说明是咪咕数媒的散户
+    let parentName: string;
+    if (names.some(n => n.includes("咪咕用户"))) {
+      parentName = "咪咕数媒";
+    } else {
       // 使用第一个非散户子节点名称，或回退到 "部门{parentId}"
       const nonMigu = names.find(n => !n.includes("咪咕用户"));
-      return nonMigu || `部门${pid}`;
-    })();
+      parentName = nonMigu || `部门${pid}`;
+    }
 
     for (const c of clients) {
       if (String(c.parentId) === pid) {
@@ -374,17 +424,28 @@ async function getCompanyList(ctx: any) {
   // 同时添加不在 parentMap 中的公司级节点（从 breakdown 数据中获取）
   const now = Math.floor(Date.now() / 1000);
   try {
-    const bdData = await callModelRouterAPI(ctx, "/api/v1/modelRouter/open/billing/cost/breakdown", {
+    const allBdRows = await fetchAllBreakdownRows(ctx, {
       startTime: now - 86400 * 30,
       endTime: now,
       granularity: "daily",
-      pageSize: 500,
-    }, "ModelRouterQueryBillingCostBreakdown");
+    });
     
-    for (const row of (bdData?.data?.rows || [])) {
+    for (const row of allBdRows) {
       const clientId = String(row.clientId);
-      if (!parentMap.has(clientId) && !companySet.has(clientId)) {
-        companySet.set(clientId, { id: clientId, name: row.clientName || `客户${clientId}` });
+      const clientName = row.clientName || "";
+      // 检查是否已经在 parentMap 中（散户已归到父级公司）
+      const parentInfo = parentMap.get(clientId);
+      if (parentInfo) continue; // 已在 parentMap 中，跳过
+      // 咪咕用户散户归到"咪咕数媒"
+      if (clientName.includes("咪咕用户")) {
+        if (!companySet.has("migu")) {
+          companySet.set("migu", { id: "migu", name: "咪咕数媒" });
+        }
+        continue;
+      }
+      // 公司级节点
+      if (!companySet.has(clientId)) {
+        companySet.set(clientId, { id: clientId, name: clientName || `客户${clientId}` });
       }
     }
   } catch {
@@ -404,40 +465,22 @@ async function getCompanyCostSummary(ctx: any, params: any) {
   const startTime = params.startTime || now - 86400 * 30;
   const endTime = params.endTime || now;
   
-  // 并发获取 breakdown 数据和客户-父级映射
-  const [data, parentMap] = await Promise.all([
-    callModelRouterAPI(ctx, "/api/v1/modelRouter/open/billing/cost/breakdown", {
-      startTime,
-      endTime,
-      granularity: "daily",
-      pageSize: 500,
-    }, "ModelRouterQueryBillingCostBreakdown"),
+  // 并发获取全部 breakdown 数据和客户-父级映射
+  const [allRows, parentMap] = await Promise.all([
+    fetchAllBreakdownRows(ctx, { startTime, endTime, granularity: "daily" }),
     buildClientParentMap(ctx),
   ]);
   
-  const rows = data?.data?.rows || [];
-  
-  // 按公司（parentId）分组汇总
-  // 如果 breakdown 的 clientId 在 parentMap 中，归到父级公司
-  // 否则直接用 clientId 作为公司（如南京仰格、贵州图辑等本身就是公司级）
+  // 按公司分组汇总
+  // 散户（咪咕用户-xxx）归到"咪咕数媒"
+  // 其他有 parentId 的叶子节点归到父级公司
+  // 公司级条目保持独立
   const companyMap = new Map<string, { companyId: string; companyName: string; totalCost: number; totalCalls: number; totalTokens: number }>();
   
-  for (const row of rows) {
+  for (const row of allRows) {
     const clientId = String(row.clientId || "unknown");
-    const parentInfo = parentMap.get(clientId);
-    
-    // 确定公司 ID 和名称
-    let companyId: string;
-    let companyName: string;
-    if (parentInfo) {
-      // 散户归到父级公司
-      companyId = parentInfo.parentId;
-      companyName = parentInfo.parentName;
-    } else {
-      // 本身就是公司级节点
-      companyId = clientId;
-      companyName = row.clientName || `客户${clientId}`;
-    }
+    const clientName = row.clientName || "";
+    const { companyId, companyName } = resolveCompany(clientId, clientName, parentMap);
     
     if (!companyMap.has(companyId)) {
       companyMap.set(companyId, { companyId, companyName, totalCost: 0, totalCalls: 0, totalTokens: 0 });
@@ -454,6 +497,7 @@ async function getCompanyCostSummary(ctx: any, params: any) {
     entry.totalTokens += (vals?.input_tokens || 0) + (vals?.output_tokens || 0);
   }
   
+  console.log(`公司汇总: ${allRows.length} 条 breakdown → ${companyMap.size} 家公司`);
   return Array.from(companyMap.values());
 }
 
