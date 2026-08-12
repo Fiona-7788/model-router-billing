@@ -16,5 +16,5 @@
     { "name": "ALIYUN_ACCESS_KEY_SECRET", "required": true }
   ],
   "enabled": true,
-  "published": false
+  "published": true
 }
