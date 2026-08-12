@@ -45,3 +45,15 @@
 ## SDD Bypass
 
 - 2026-08-12T02:49:56.975Z openxiangda runtime deploy bypassed SDD gate: 修正API路径
+
+## SDD Bypass
+
+- 2026-08-12T07:43:48.021Z openxiangda runtime deploy bypassed SDD gate: Debug frontend model cost list mapping
+
+## SDD Bypass
+
+- 2026-08-12T07:43:58.231Z openxiangda runtime deploy bypassed SDD gate: Debug frontend model cost list mapping
+
+## SDD Bypass
+
+- 2026-08-12T07:44:10.675Z openxiangda runtime deploy bypassed SDD gate: Debug frontend model cost list mapping
