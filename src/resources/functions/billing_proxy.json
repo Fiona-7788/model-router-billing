@@ -2,6 +2,7 @@
   "code": "billing_proxy",
   "name": "账单数据代理",
   "description": "代理调用阿里云 AiContent (Model Router) 计费管理 API",
+  "sourceFile": "src/functions/billing_proxy/index.ts",
   "definitionJson": {
     "kind": "app_function",
     "version": "function_v2",
