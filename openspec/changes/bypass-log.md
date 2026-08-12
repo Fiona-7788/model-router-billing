@@ -383,3 +383,10 @@
 - targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
 - followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
 - user: fengyujing
+## 2026-08-12T09:31:20.351Z
+
+- command: openxiangda runtime deploy
+- reason: Revert to pre-call-sources-adjustment and redeploy frontend
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
