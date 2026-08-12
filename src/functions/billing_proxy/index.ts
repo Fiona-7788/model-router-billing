@@ -256,9 +256,11 @@ async function getCostOverview(ctx: any, params: any) {
   const startTime = params.startTime || now - 86400 * 30;
   const endTime = params.endTime || now;
   
-  // 今日时间范围
-  const todayStart = Math.floor(now / 86400) * 86400; // 今天 00:00:00 UTC
-  const todayEnd = todayStart + 86400; // 明天 00:00:00 UTC
+  // 今日时间范围（北京时间 UTC+8）
+  const beijingOffset = 8 * 3600; // 8小时偏移
+  const nowBeijing = now + beijingOffset; // 当前北京时间的时间戳（相对 UTC 0点）
+  const todayStart = Math.floor(nowBeijing / 86400) * 86400 - beijingOffset; // 今天北京时间 00:00:00 对应的 UTC 时间戳
+  const todayEnd = todayStart + 86400; // 明天北京时间 00:00:00 对应的 UTC 时间戳
 
   // 并发获取 overview 指标和全部 breakdown 费用数据
   const [overviewData, allRows, parentMap] = await Promise.all([
