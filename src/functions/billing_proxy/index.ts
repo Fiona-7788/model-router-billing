@@ -377,11 +377,19 @@ async function getCostTrend(ctx: any, params: any) {
 /**
  * 获取模型费用列表（按模型分类）
  * 使用 breakdown API 按模型聚合费用数据
+ * totalCost/totalCalls/totalTokens 返回今日数据
  */
 async function getModelCostList(ctx: any, params: any) {
   const now = Math.floor(Date.now() / 1000);
   const startTime = params.startTime || now - 86400 * 30;
   const endTime = params.endTime || now;
+  
+  // 今日时间范围（北京时间 UTC+8）
+  const beijingOffset = 8 * 3600; // 8小时偏移
+  const nowBeijing = new Date((now + beijingOffset) * 1000);
+  const todayYear = nowBeijing.getUTCFullYear();
+  const todayMonth = nowBeijing.getUTCMonth(); // 0-11
+  const todayDate = nowBeijing.getUTCDate(); // 1-31
   
   // 获取全部 breakdown 数据和客户-父级映射
   const [allRows, parentMap] = await Promise.all([
@@ -404,6 +412,20 @@ async function getModelCostList(ctx: any, params: any) {
   }>();
   
   for (const row of filteredRows) {
+    const ts = row.summaryTime || row.timestamp;
+    if (!ts) continue;
+    
+    // 将 summaryTime 转换为北京时间，然后提取年月日
+    const rowDate = new Date((ts + beijingOffset) * 1000);
+    const rowYear = rowDate.getUTCFullYear();
+    const rowMonth = rowDate.getUTCMonth();
+    const rowDay = rowDate.getUTCDate();
+    
+    // 只统计今天的数据
+    if (rowYear !== todayYear || rowMonth !== todayMonth || rowDay !== todayDate) {
+      continue;
+    }
+    
     const modelName = row.modelName || row.modelCode || "未知模型";
     const modelType = row.modelType || "";
     const modelCategory = getModelCategory(modelType);
