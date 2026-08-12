@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "openxiangda-sdd-v2",
+  "changeId": "fix-api-signing-v18",
+  "mainlinePolicy": "publish-from-main-v1",
+  "releaseSourceRevision": {
+    "repo": "sha256:6342604c033e10a19edc95e861a4c0d8b745e6302f6345c21dfcd1eec3698500",
+    "baseCommit": "5b3c27bf16d917acabb80c316bf7e2e9bc74e206",
+    "treeHash": "0e66720dea3f496def233a46f9c03c8edd08647b",
+    "branch": "main",
+    "remoteName": "origin",
+    "remoteUrlHash": "sha256:ef44ed468b235a0845b38995ceb0b0da4b613b88b2430c68fd8f40d3fa500b88",
+    "mainBranch": "main",
+    "mainTipCommit": "5b3c27bf16d917acabb80c316bf7e2e9bc74e206",
+    "capturedAt": "2026-08-12T07:07:12.220Z"
+  }
+}

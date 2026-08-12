@@ -255,12 +255,18 @@ async function getCostOverview(ctx: any, params: any) {
   const now = Math.floor(Date.now() / 1000);
   const startTime = params.startTime || now - 86400 * 30;
   const endTime = params.endTime || now;
-  
+
   // 今日时间范围（北京时间 UTC+8）
+  // summaryTime 是聚合时间戳，表示该天零点的 UTC 时间
+  // 例如 summaryTime = 1786464000 (UTC 2026-08-11T16:00:00Z) = 北京时间 2026/8/12 00:00:00
+  // 这表示的是 8/11 这一天的汇总数据，所以应该用 summaryTime + 8小时来判断日期
   const beijingOffset = 8 * 3600; // 8小时偏移
-  const nowBeijing = now + beijingOffset; // 当前北京时间的时间戳（相对 UTC 0点）
-  const todayStart = Math.floor(nowBeijing / 86400) * 86400 - beijingOffset; // 今天北京时间 00:00:00 对应的 UTC 时间戳
-  const todayEnd = todayStart + 86400; // 明天北京时间 00:00:00 对应的 UTC 时间戳
+  
+  // 计算北京时间的今天日期（年月日）
+  const nowBeijing = new Date((now + beijingOffset) * 1000);
+  const todayYear = nowBeijing.getUTCFullYear();
+  const todayMonth = nowBeijing.getUTCMonth(); // 0-11
+  const todayDate = nowBeijing.getUTCDate(); // 1-31
 
   // 并发获取 overview 指标和全部 breakdown 费用数据
   const [overviewData, allRows, parentMap] = await Promise.all([
@@ -292,8 +298,17 @@ async function getCostOverview(ctx: any, params: any) {
   let periodTokens = 0;
   for (const row of filteredRows) {
     const ts = row.summaryTime || row.timestamp;
-    if (ts && ts >= todayStart && ts < todayEnd) {
-      todayCost += row.payableAmount || 0;
+    if (ts) {
+      // 将 summaryTime 转换为北京时间，然后提取年月日
+      const rowDate = new Date((ts + beijingOffset) * 1000);
+      const rowYear = rowDate.getUTCFullYear();
+      const rowMonth = rowDate.getUTCMonth();
+      const rowDay = rowDate.getUTCDate();
+      
+      // 如果年月日匹配，则是今天的数据
+      if (rowYear === todayYear && rowMonth === todayMonth && rowDay === todayDate) {
+        todayCost += row.payableAmount || 0;
+      }
     }
     
     let vals = row.values;
@@ -639,12 +654,18 @@ async function getCompanyCostSummary(ctx: any, params: any) {
   const now = Math.floor(Date.now() / 1000);
   const startTime = params.startTime || now - 86400 * 30;
   const endTime = params.endTime || now;
-  
+
   // 今日时间范围（北京时间 UTC+8）
+  // summaryTime 是聚合时间戳，表示该天零点的 UTC 时间
+  // 例如 summaryTime = 1786464000 (UTC 2026-08-11T16:00:00Z) = 北京时间 2026/8/12 00:00:00
+  // 这表示的是 8/11 这一天的汇总数据，所以应该用 summaryTime + 8小时来判断日期
   const beijingOffset = 8 * 3600; // 8小时偏移
-  const nowBeijing = now + beijingOffset; // 当前北京时间的时间戳（相对 UTC 0点）
-  const todayStart = Math.floor(nowBeijing / 86400) * 86400 - beijingOffset; // 今天北京时间 00:00:00 对应的 UTC 时间戳
-  const todayEnd = todayStart + 86400; // 明天北京时间 00:00:00 对应的 UTC 时间戳
+  
+  // 计算北京时间的今天日期（年月日）
+  const nowBeijing = new Date((now + beijingOffset) * 1000);
+  const todayYear = nowBeijing.getUTCFullYear();
+  const todayMonth = nowBeijing.getUTCMonth(); // 0-11
+  const todayDate = nowBeijing.getUTCDate(); // 1-31
   
   // 并发获取全部 breakdown 数据和客户-父级映射
   const [allRows, parentMap] = await Promise.all([
@@ -671,8 +692,17 @@ async function getCompanyCostSummary(ctx: any, params: any) {
     
     // 今日费用
     const ts = row.summaryTime || row.timestamp;
-    if (ts && ts >= todayStart && ts < todayEnd) {
-      entry.totalCost += row.payableAmount || 0;
+    if (ts) {
+      // 将 summaryTime 转换为北京时间，然后提取年月日
+      const rowDate = new Date((ts + beijingOffset) * 1000);
+      const rowYear = rowDate.getUTCFullYear();
+      const rowMonth = rowDate.getUTCMonth();
+      const rowDay = rowDate.getUTCDate();
+      
+      // 如果年月日匹配，则是今天的数据
+      if (rowYear === todayYear && rowMonth === todayMonth && rowDay === todayDate) {
+        entry.totalCost += row.payableAmount || 0;
+      }
     }
     
     // values 可能是 JSON 字符串
