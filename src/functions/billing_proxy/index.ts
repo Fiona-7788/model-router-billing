@@ -355,14 +355,18 @@ function resolveCompany(
   clientName: string,
   parentMap: Map<string, { parentId: string; parentName: string }>
 ): { companyId: string; companyName: string } {
-  // 1. 优先查 parentMap（叶子节点归到父级公司）
-  const parentInfo = parentMap.get(clientId);
-  if (parentInfo) {
-    return { companyId: parentInfo.parentId, companyName: parentInfo.parentName };
-  }
-  // 2. 名称模式匹配：咪咕用户 → 咪咕数媒
+  // 1. 名称模式匹配：咪咕用户 → 咪咕数媒（最高优先级，统一 companyId）
   if (isIndividualClient(clientName)) {
     return { companyId: "migu", companyName: "咪咕数媒" };
+  }
+  // 2. 查 parentMap（叶子节点归到父级公司）
+  const parentInfo = parentMap.get(clientId);
+  if (parentInfo) {
+    // 如果父级是咪咕数媒，也统一用 "migu" 作为 companyId
+    if (parentInfo.parentName === "咪咕数媒") {
+      return { companyId: "migu", companyName: "咪咕数媒" };
+    }
+    return { companyId: parentInfo.parentId, companyName: parentInfo.parentName };
   }
   // 3. 本身就是公司级节点
   return { companyId: clientId, companyName: clientName || `客户${clientId}` };
