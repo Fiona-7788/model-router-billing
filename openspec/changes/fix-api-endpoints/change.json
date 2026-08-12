@@ -1,0 +1,7 @@
+{
+  "id": "fix-api-endpoints",
+  "title": "修正 API 端点接入真实数据",
+  "description": "替换不存在的 API 端点，使用正确的阿里云 Model Router API 路径接入真实计费数据",
+  "riskLevel": "L2",
+  "createdAt": "2026-08-12T04:00:00.000Z"
+}

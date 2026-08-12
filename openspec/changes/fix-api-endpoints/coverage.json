@@ -1,0 +1,13 @@
+{
+  "changeId": "fix-api-endpoints",
+  "files": [
+    "src/functions/billing_proxy/index.ts",
+    "src/shared/billing/api-client.ts",
+    "src/shared/billing/types.ts",
+    "src/pages/billing/BillingDashboardPage.tsx",
+    "src/pages/billing/CallSourcesPage.tsx"
+  ],
+  "resources": [
+    { "type": "function", "code": "billing_proxy" }
+  ]
+}
