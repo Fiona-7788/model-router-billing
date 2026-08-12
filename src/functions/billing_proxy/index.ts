@@ -152,22 +152,55 @@ async function getCostOverview(ctx: any, params: any) {
 /**
  * 获取费用趋势指标
  * API: GET /api/v1/modelRouter/open/billing/cost/trend
+ * 支持按客户分组返回（用于前端堆叠柱状图）
  */
 async function getCostTrend(ctx: any, params: any) {
   const now = Math.floor(Date.now() / 1000);
   const startTime = params.startTime || now - 86400 * 30;
   const endTime = params.endTime || now;
+  const granularity = params.granularity || "daily";
   
-  const data = await callModelRouterAPI(ctx, "/modelRouter/open/billing/cost/trend", {
-    startTime,
-    endTime,
-    modelTypes: params.modelTypes,
-    clientId: params.clientId,
-    apiKeyId: params.apiKeyId,
-    granularity: params.granularity || "daily",
-    memberUserIds: params.memberUserIds,
-  });
-  return data?.data || [];
+  // 获取客户列表，用于按客户分组趋势
+  const clients = await getClientList(ctx);
+  
+  // 并发获取每个客户的趋势数据
+  const clientTrends = await Promise.all(
+    clients.map(async (client: any) => {
+      try {
+        const data = await callModelRouterAPI(ctx, "/modelRouter/open/billing/cost/trend", {
+          startTime,
+          endTime,
+          clientId: client.id,
+          granularity,
+        });
+        
+        const points = data?.data?.points || [];
+        return {
+          clientName: client.name || `客户${client.id}`,
+          points,
+        };
+      } catch (error) {
+        console.error(`获取客户 ${client.name} 趋势失败:`, error);
+        return { clientName: client.name, points: [] };
+      }
+    })
+  );
+  
+  // 转换为前端期望的格式: [{date, company, cost}]
+  const result: Array<{date: string; company: string; cost: number}> = [];
+  
+  for (const { clientName, points } of clientTrends) {
+    for (const point of points) {
+      const ts = point.timestamp;
+      const dateStr = new Date(ts * 1000).toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit" });
+      const cost = point.values?.total_amount || 0;
+      if (cost > 0) {
+        result.push({ date: dateStr, company: clientName, cost });
+      }
+    }
+  }
+  
+  return result;
 }
 
 /**
@@ -191,31 +224,90 @@ async function getModelCostList(ctx: any, params: any) {
 }
 
 /**
+ * 获取客户（公司/部门）列表
+ * API: GET /api/v1/modelRouter/open/clients
+ */
+async function getClientList(ctx: any) {
+  const allClients: any[] = [];
+  let nextToken: string | undefined;
+  
+  do {
+    const params: Record<string, unknown> = { pageSize: 100 };
+    if (nextToken) params.nextToken = nextToken;
+    
+    const data = await callModelRouterAPI(ctx, "/modelRouter/open/clients", params);
+    const list = data?.data?.list || data?.data || [];
+    allClients.push(...list);
+    nextToken = data?.data?.nextToken;
+  } while (nextToken);
+  
+  return allClients;
+}
+
+/**
  * 获取部门/公司费用汇总
+ * 通过获取客户列表 + 每个客户的费用概览来构建
  */
 async function getCompanyCostSummary(ctx: any, params: any) {
   const now = Math.floor(Date.now() / 1000);
   const startTime = params.startTime || now - 86400 * 30;
   const endTime = params.endTime || now;
   
-  const data = await callModelRouterAPI(ctx, "/modelRouter/open/billing/cost/companies", {
-    startTime,
-    endTime,
-    clientId: params.clientId,
-    memberUserIds: params.memberUserIds,
-  });
-  return data?.data || [];
+  // 获取所有客户
+  const clients = await getClientList(ctx);
+  
+  // 并发获取每个客户的费用概览
+  const results = await Promise.all(
+    clients.map(async (client: any) => {
+      try {
+        const overviewData = await callModelRouterAPI(ctx, "/modelRouter/open/billing/cost/overview", {
+          startTime,
+          endTime,
+          clientId: client.id,
+        });
+        
+        // overview 返回 [{key, label, value, unit}] 数组
+        const metrics = overviewData?.data || [];
+        const metricMap: Record<string, number> = {};
+        for (const m of metrics) {
+          metricMap[m.key] = m.value ?? 0;
+        }
+        
+        return {
+          companyId: String(client.id),
+          companyName: client.name || `客户${client.id}`,
+          totalCost: metricMap.total_amount || 0,
+          totalCalls: metricMap.total_calls || 0,
+          totalTokens: (metricMap.total_input_tokens || 0) + (metricMap.total_output_tokens || 0),
+          modelBreakdown: [],
+        };
+      } catch (error) {
+        console.error(`获取客户 ${client.name} 费用失败:`, error);
+        return {
+          companyId: String(client.id),
+          companyName: client.name || `客户${client.id}`,
+          totalCost: 0,
+          totalCalls: 0,
+          totalTokens: 0,
+          modelBreakdown: [],
+        };
+      }
+    })
+  );
+  
+  return results;
 }
 
 /**
- * 获取调取来源明细（按 API Key 或成员）
+ * 获取调取来源明细（计费明细）
+ * API: GET /api/v1/modelRouter/open/billing/cost/breakdown
  */
 async function getCallSources(ctx: any, params: any) {
   const now = Math.floor(Date.now() / 1000);
   const startTime = params.startTime || now - 86400 * 30;
   const endTime = params.endTime || now;
   
-  const data = await callModelRouterAPI(ctx, "/modelRouter/open/billing/cost/sources", {
+  const breakdownParams: Record<string, unknown> = {
     startTime,
     endTime,
     clientId: params.clientId,
@@ -223,11 +315,16 @@ async function getCallSources(ctx: any, params: any) {
     memberUserIds: params.memberUserIds,
     maxResults: params.pageSize || 20,
     nextToken: params.nextToken,
-  });
+  };
+  
+  const data = await callModelRouterAPI(ctx, "/modelRouter/open/billing/cost/breakdown", breakdownParams);
+  
+  // breakdown 可能返回分页数据
+  const items = data?.data?.list || data?.data?.rows || data?.data || [];
   return {
-    items: data?.data || [],
-    total: data?.total || 0,
-    nextToken: data?.nextToken,
+    items: Array.isArray(items) ? items : [],
+    total: data?.data?.total || items.length || 0,
+    nextToken: data?.data?.nextToken,
   };
 }
 
@@ -265,8 +362,11 @@ export default async function(ctx: any) {
       case "callSources":
         result = await getCallSources(ctx, params);
         break;
+      case "clientList":
+        result = await getClientList(ctx);
+        break;
       default:
-        throw new Error(`未知的 action: ${action}。支持的 actions: billingCostTabs, costOverview, costTrend, modelCostList, companyCostSummary, callSources`);
+        throw new Error(`未知的 action: ${action}。支持的 actions: billingCostTabs, costOverview, costTrend, modelCostList, companyCostSummary, callSources, clientList`);
     }
     
     return {

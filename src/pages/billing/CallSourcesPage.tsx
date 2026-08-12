@@ -45,15 +45,8 @@ export function CallSourcesPage() {
   }, [dateStr, companyId, page, pageSize]);
 
   useEffect(() => {
-    // 使用硬编码的公司列表（阿里云 Model Router API 不提供公司列表接口）
-    setCompanies([
-      { id: "c1", name: "奕阳教育" },
-      { id: "c2", name: "南京仰格" },
-      { id: "c3", name: "贵州图辑" },
-      { id: "c4", name: "杭州麦达" },
-      { id: "c5", name: "生芽教育" },
-      { id: "c6", name: "咪咕数媒" },
-    ]);
+    // 从真实 API 获取客户列表
+    billingApi.getCompanies().then(setCompanies);
   }, []);
 
   useEffect(() => {

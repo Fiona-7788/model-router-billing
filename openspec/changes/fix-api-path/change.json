@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "openxiangda-sdd-v2",
+  "id": "fix-api-path",
+  "title": "修正 API 路径",
+  "status": "approved",
+  "riskLevel": "low",
+  "createdAt": "2026-08-12T03:00:00.000Z",
+  "updatedAt": "2026-08-12T03:00:00.000Z",
+  "approvedAt": "2026-08-12T03:00:00.000Z",
+  "approvedBy": "fengyujing",
+  "approvalSummary": "修正 function invoke URL 路径",
+  "affected": {"forms":[],"pages":[],"functions":[],"automations":[],"workflows":[],"jsCodeNodes":[],"files":[],"resources":false,"runtime":true,"backend":false,"contracts":false}
+}

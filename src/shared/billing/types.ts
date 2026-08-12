@@ -86,6 +86,8 @@ export interface PaginatedResponse<T> {
 /** App Function 请求动作 */
 export type BillingAction =
   | "companies"
+  | "clientList"
+  | "billingCostTabs"
   | "costOverview"
   | "costTrend"
   | "modelCostList"

@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "openxiangda-sdd-v2",
+  "id": "deploy-real-data",
+  "title": "部署前端接入真实数据",
+  "status": "approved",
+  "riskLevel": "low",
+  "createdAt": "2026-08-12T00:00:00.000Z",
+  "updatedAt": "2026-08-12T02:24:11.398Z",
+  "approvedAt": "2026-08-12T00:00:00.000Z",
+  "approvedBy": "fengyujing",
+  "approvalSummary": "部署前端代码，通过 fetch fallback 调用 billing_proxy function 接入真实数据",
+  "affected": {
+    "forms": [],
+    "pages": [
+      "billing_dashboard",
+      "call_sources"
+    ],
+    "functions": [],
+    "automations": [],
+    "workflows": [],
+    "jsCodeNodes": [],
+    "files": [],
+    "resources": false,
+    "runtime": true,
+    "backend": false,
+    "contracts": false
+  },
+  "release": {
+    "plannedCommands": [
+      "openxiangda runtime deploy --no-activate --profile yida --change deploy-real-data",
+      "openxiangda release app-finalize --staged-resources-json .openxiangda/releases/deploy-real-data/staged-resources.json --profile yida --change deploy-real-data"
+    ],
+    "lastVerifiedAt": "2026-08-12T02:24:11.398Z"
+  },
+  "verification": {
+    "prepublish": {
+      "passed": true,
+      "verifiedAt": "2026-08-12T02:24:11.398Z"
+    }
+  }
+}

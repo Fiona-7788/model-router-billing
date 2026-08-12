@@ -1,8 +1,8 @@
 /**
  * Model Router 账单 API 客户端
  *
- * 当前使用模拟数据。接入真实 API 后，所有请求将通过 App Function (billing-proxy) 代理
- * 调用阿里云 Model Router 的计费管理接口。
+ * 通过 App Function (billing_proxy) 代理调用阿里云 Model Router 计费管理 API。
+ * 当 API 调用失败时使用 mock 数据作为 fallback。
  */
 
 import dayjs from "dayjs";
@@ -41,6 +41,24 @@ export const COMPANY_COLORS: Record<string, string> = {
   生芽教育: "#a855f7",
   咪咕数媒: "#14b8a6",
 };
+
+/** 动态配色池，用于未在 COMPANY_COLORS 中的公司 */
+const COLOR_PALETTE = [
+  "#3b82f6", "#22c55e", "#f97316", "#eab308", "#a855f7", "#14b8a6",
+  "#ef4444", "#06b6d4", "#84cc16", "#f43f5e", "#8b5cf6", "#10b981",
+];
+const dynamicColorMap = new Map<string, string>();
+let colorIndex = 0;
+
+/** 获取公司对应的颜色（支持动态公司名） */
+export function getCompanyColor(name: string): string {
+  if (COMPANY_COLORS[name]) return COMPANY_COLORS[name];
+  if (dynamicColorMap.has(name)) return dynamicColorMap.get(name)!;
+  const color = COLOR_PALETTE[colorIndex % COLOR_PALETTE.length];
+  dynamicColorMap.set(name, color);
+  colorIndex++;
+  return color;
+}
 
 const MODELS: { name: string; category: string }[] = [
   { name: "qwen-max", category: "大语言模型" },
@@ -181,6 +199,64 @@ function mockCallSources(params: CallSourcesParams): PaginatedResponse<CallSourc
 }
 
 /* ------------------------------------------------------------------ */
+/*  API response mappers                                                */
+/* ------------------------------------------------------------------ */
+
+/** 将 API 返回的 metrics 数组 [{key, value}] 转换为 CostOverviewMetrics */
+function mapOverviewResponse(raw: any): CostOverviewMetrics {
+  if (!Array.isArray(raw)) return { totalCost: 0, currentPeriodCost: 0, lastPeriodCost: 0, costChangeRate: 0, totalCalls: 0, totalTokens: 0 };
+  const m: Record<string, number> = {};
+  for (const item of raw) {
+    if (item?.key) m[item.key] = item.value ?? 0;
+  }
+  const totalCost = m.total_amount ?? m.totalAmount ?? 0;
+  const lastCost = m.last_period_amount ?? m.lastPeriodAmount ?? totalCost;
+  return {
+    totalCost,
+    currentPeriodCost: totalCost,
+    lastPeriodCost: lastCost,
+    costChangeRate: lastCost ? (totalCost - lastCost) / lastCost : 0,
+    totalCalls: m.total_calls ?? m.totalCalls ?? 0,
+    totalTokens: (m.total_input_tokens ?? m.totalInputTokens ?? 0) + (m.total_output_tokens ?? m.totalOutputTokens ?? 0),
+  };
+}
+
+/** 将 API 返回的模型费用行转换为 ModelCostItem */
+function mapModelCostRow(row: any): ModelCostItem {
+  let values: Record<string, number> = {};
+  if (typeof row.values === "string") {
+    try { values = JSON.parse(row.values); } catch { values = {}; }
+  } else if (row.values && typeof row.values === "object") {
+    values = row.values;
+  }
+  return {
+    model: row.modelName || row.modelCode || row.model || "未知模型",
+    modelCategory: row.modelType || row.modelCategory || "未知类别",
+    totalCost: values.total_amount ?? values.totalAmount ?? 0,
+    totalCalls: values.total_calls ?? values.totalCalls ?? 0,
+    totalInputTokens: values.total_input_tokens ?? values.totalInputTokens ?? 0,
+    totalOutputTokens: values.total_output_tokens ?? values.totalOutputTokens ?? 0,
+  };
+}
+
+/** 将 API 返回的计费明细行转换为 CallSourceRecord */
+function mapBreakdownRow(row: any, index: number): CallSourceRecord {
+  return {
+    id: row.id || row.apiKeyId || `row-${index}`,
+    company: row.clientName || row.company || row.companyName || "未知",
+    model: row.modelName || row.modelCode || row.model || "未知",
+    modelCategory: row.modelType || row.modelCategory || "未知",
+    calls: row.total_calls ?? row.calls ?? 0,
+    inputTokens: row.total_input_tokens ?? row.inputTokens ?? 0,
+    outputTokens: row.total_output_tokens ?? row.outputTokens ?? 0,
+    totalTokens: (row.total_input_tokens ?? row.inputTokens ?? 0) + (row.total_output_tokens ?? row.outputTokens ?? 0),
+    cost: row.total_amount ?? row.cost ?? row.amount ?? 0,
+    date: row.date || row.timestamp ? new Date((row.timestamp || 0) * 1000).toISOString().slice(0, 10) : "",
+    apiKeyId: row.apiKeyId || row.api_key_id || undefined,
+  };
+}
+
+/* ------------------------------------------------------------------ */
 /*  Public API                                                         */
 /* ------------------------------------------------------------------ */
 
@@ -250,6 +326,9 @@ async function invokeBilling<T>(action: BillingAction, params: Record<string, un
  */
 function getMockData<T>(action: BillingAction, params: Record<string, unknown>): T {
   switch (action) {
+    case "clientList":
+    case "companies":
+      return COMPANIES as unknown as T;
     case "billingCostTabs":
       return [] as unknown as T;
     case "costOverview":
@@ -268,21 +347,36 @@ function getMockData<T>(action: BillingAction, params: Record<string, unknown>):
 }
 
 export const billingApi = {
-  // 注意：getCompanies 已移除，因为阿里云 Model Router API 不提供公司列表接口
-  // 如需公司/部门列表，请从其他数据源获取
+  /** 获取客户（公司）列表 — 从真实 API 获取 */
+  getCompanies: () =>
+    invokeBilling<any[]>("clientList", {}).then(clients =>
+      (clients || []).map((c: any) => ({ id: String(c.id), name: c.name || `客户${c.id}` }))
+    ).catch(() => {
+      // fallback 到硬编码列表
+      return COMPANIES;
+    }),
 
   getCostOverview: (params: BillingDashboardParams) =>
-    invokeBilling<CostOverviewMetrics>("costOverview", params as unknown as Record<string, unknown>),
+    invokeBilling<any>("costOverview", params as unknown as Record<string, unknown>).then(mapOverviewResponse),
 
   getCostTrend: (params: BillingDashboardParams) =>
     invokeBilling<CostTrendPoint[]>("costTrend", params as unknown as Record<string, unknown>),
 
   getModelCostList: (params: BillingDashboardParams) =>
-    invokeBilling<ModelCostItem[]>("modelCostList", params as unknown as Record<string, unknown>),
+    invokeBilling<any>("modelCostList", params as unknown as Record<string, unknown>).then(raw => {
+      // API 返回 {columns, rows, idField, nameField} 或直接数组
+      const rows = raw?.rows || raw || [];
+      return (Array.isArray(rows) ? rows : []).map(mapModelCostRow);
+    }),
 
   getCompanyCostSummary: (params: BillingDashboardParams) =>
     invokeBilling<CompanyCostSummary[]>("companyCostSummary", params as unknown as Record<string, unknown>),
 
   getCallSources: (params: CallSourcesParams) =>
-    invokeBilling<PaginatedResponse<CallSourceRecord>>("callSources", params as unknown as Record<string, unknown>),
+    invokeBilling<any>("callSources", params as unknown as Record<string, unknown>).then(raw => ({
+      items: (raw?.items || []).map((r: any, i: number) => mapBreakdownRow(r, i)),
+      total: raw?.total || 0,
+      page: params.page || 1,
+      pageSize: params.pageSize || 20,
+    })),
 };

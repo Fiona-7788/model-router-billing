@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "openxiangda-sdd-v2",
+  "changeId": "deploy-real-data-v2",
+  "generatedAt": "2026-08-12T00:00:00.000Z",
+  "resources": {
+    "forms": [],
+    "pages": ["billing_dashboard", "call_sources"],
+    "functions": ["billing_proxy"],
+    "automations": [],
+    "workflows": [],
+    "jsCodeNodes": [],
+    "resources": true,
+    "runtime": true,
+    "backend": true,
+    "contracts": false,
+    "files": ["src/shared/billing/api-client.ts", "src/resources/functions/billing_proxy.json", "src/functions/billing_proxy/index.ts"]
+  },
+  "requirements": [
+    {
+      "id": "req-deploy",
+      "title": "部署前端接入真实数据",
+      "spec": "specs/app/spec.md",
+      "scenarios": [
+        {
+          "id": "main-path",
+          "title": "部署前端并调用 billing_proxy function",
+          "evidence": []
+        }
+      ],
+      "covers": {
+        "forms": [],
+        "pages": ["billing_dashboard", "call_sources"],
+        "functions": ["billing_proxy"],
+        "automations": [],
+        "workflows": [],
+        "jsCodeNodes": [],
+        "resources": true,
+        "runtime": true,
+        "backend": true,
+        "contracts": false,
+        "files": ["src/shared/billing/api-client.ts", "src/resources/functions/billing_proxy.json"]
+      }
+    }
+  ]
+}

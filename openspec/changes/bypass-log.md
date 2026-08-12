@@ -138,3 +138,94 @@
 - targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
 - followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
 - user: fengyujing
+## 2026-08-12T02:21:33.705Z
+
+- command: openxiangda runtime deploy
+- reason: 部署前端代码接入真实数据，清理 git 历史后重新部署
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-12T02:22:46.476Z
+
+- command: openxiangda runtime deploy
+- reason: 清理历史后重新部署前端
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-12T02:23:27.949Z
+
+- command: openxiangda runtime deploy
+- reason: 清理git历史后重新部署
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-12T02:24:01.331Z
+
+- command: openxiangda runtime deploy
+- reason: 清理git历史后重新部署前端
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-12T02:27:44.647Z
+
+- command: openxiangda resource publish
+- reason: 更新function接入真实数据
+- targets: {"forms":[],"pages":[],"functions":["billing_proxy"],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-12T02:27:58.863Z
+
+- command: openxiangda resource publish
+- reason: 使用inline code格式，无sourceFile
+- targets: {"forms":[],"pages":[],"functions":["billing_proxy"],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-12T02:28:19.814Z
+
+- command: openxiangda runtime deploy
+- reason: 部署前端和function更新
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-12T02:28:26.531Z
+
+- command: openxiangda runtime deploy
+- reason: git历史重写后重新部署，清理旧基线
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-12T02:49:35.184Z
+
+- command: openxiangda runtime deploy
+- reason: 修正API路径从open-api到openxiangda-api
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-12T02:49:47.764Z
+
+- command: openxiangda runtime deploy
+- reason: 修正API路径从open-api到openxiangda-api
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-12T02:49:56.970Z
+
+- command: openxiangda runtime deploy
+- reason: 修正API路径
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-12T02:50:30.851Z
+
+- command: openxiangda runtime deploy
+- reason: 修正URL
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-12T02:50:43.759Z
+
+- command: openxiangda runtime deploy
+- reason: 修正前端API路径
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing

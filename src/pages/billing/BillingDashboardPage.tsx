@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import dayjs from "dayjs";
 
-import { billingApi, COMPANY_COLORS } from "@/shared/billing/api-client";
+import { billingApi, COMPANY_COLORS, getCompanyColor } from "@/shared/billing/api-client";
 import type {
   Company,
   CompanyCostSummary,
@@ -108,7 +108,7 @@ function DailyCostBarChart({ data }: { data: CostTrendPoint[] }) {
       type: "bar" as const,
       stack: "total",
       emphasis: { focus: "series" as const },
-      itemStyle: { color: COMPANY_COLORS[name] || "#94a3b8" },
+      itemStyle: { color: getCompanyColor(name) },
       data: dates.map(date => {
         const point = data.find(d => d.date === date && d.company === name);
         return point ? Math.round(point.cost) : 0;
@@ -210,15 +210,8 @@ export function BillingDashboardPage() {
   }, [dateStr, companyId, category]);
 
   useEffect(() => {
-    // 使用硬编码的公司列表（阿里云 Model Router API 不提供公司列表接口）
-    setCompanies([
-      { id: "c1", name: "奕阳教育" },
-      { id: "c2", name: "南京仰格" },
-      { id: "c3", name: "贵州图辑" },
-      { id: "c4", name: "杭州麦达" },
-      { id: "c5", name: "生芽教育" },
-      { id: "c6", name: "咪咕数媒" },
-    ]);
+    // 从真实 API 获取客户列表
+    billingApi.getCompanies().then(setCompanies);
   }, []);
 
   useEffect(() => {
@@ -346,7 +339,7 @@ export function BillingDashboardPage() {
                 .map((s, i) => {
                   const maxCost = summary[0]?.totalCost || 1;
                   const pct = (s.totalCost / maxCost) * 100;
-                  const color = COMPANY_COLORS[s.companyName] || "#94a3b8";
+                  const color = getCompanyColor(s.companyName);
                   return (
                     <div key={s.companyId}>
                       <div className="flex items-center justify-between text-sm">

@@ -13,8 +13,11 @@
     "other": []
   },
   "changedFiles": [],
-  "commands": [],
-  "verifiedAt": null,
+  "commands": [
+    "openxiangda runtime deploy --no-activate --profile yida --change activate-runtime",
+    "openxiangda release app-finalize --staged-resources-json .openxiangda/releases/activate-runtime/staged-resources.json --profile yida --change activate-runtime"
+  ],
+  "verifiedAt": "2026-08-12T02:21:22.659Z",
   "mainlinePolicy": "publish-from-main-v1",
   "releaseSourceRevision": {
     "repo": "sha256:6342604c033e10a19edc95e861a4c0d8b745e6302f6345c21dfcd1eec3698500",
@@ -26,5 +29,11 @@
     "mainBranch": "main",
     "mainTipCommit": "b12fff8a25e1f3cf261f51d43a3efb7be695c66b",
     "capturedAt": "2026-08-11T09:00:54.073Z"
+  },
+  "verificationStage": "prepublish",
+  "verificationStages": {
+    "prepublish": {
+      "verifiedAt": "2026-08-12T02:21:22.659Z"
+    }
   }
 }

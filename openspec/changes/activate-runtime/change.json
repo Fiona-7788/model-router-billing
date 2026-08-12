@@ -5,7 +5,7 @@
   "status": "approved",
   "riskLevel": "medium",
   "createdAt": "2026-08-11T08:59:31.644Z",
-  "updatedAt": "2026-08-11T08:59:31.864Z",
+  "updatedAt": "2026-08-12T02:21:22.659Z",
   "approvedAt": "2026-08-11T08:59:31.863Z",
   "approvedBy": "fengyujing",
   "approvalSummary": "用户确认激活 Runtime",
@@ -23,8 +23,11 @@
     "contracts": false
   },
   "release": {
-    "plannedCommands": [],
-    "lastVerifiedAt": null
+    "plannedCommands": [
+      "openxiangda runtime deploy --no-activate --profile yida --change activate-runtime",
+      "openxiangda release app-finalize --staged-resources-json .openxiangda/releases/activate-runtime/staged-resources.json --profile yida --change activate-runtime"
+    ],
+    "lastVerifiedAt": "2026-08-12T02:21:22.659Z"
   },
   "evidence": {
     "files": [
@@ -36,5 +39,11 @@
     "repo": "sha256:6342604c033e10a19edc95e861a4c0d8b745e6302f6345c21dfcd1eec3698500",
     "baseCommit": "b12fff8a25e1f3cf261f51d43a3efb7be695c66b",
     "treeHash": "5120576447202fd3826bdacee7f0013ecbd547ce"
+  },
+  "verification": {
+    "prepublish": {
+      "passed": true,
+      "verifiedAt": "2026-08-12T02:21:22.659Z"
+    }
   }
 }
