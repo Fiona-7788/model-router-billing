@@ -804,6 +804,7 @@ async function getCallSources(ctx: any, params: any) {
 
 /**
  * Function 入口
+ * Updated: 2026-08-12 - Remove secretRefs, use hardcoded credentials temporarily
  */
 export default async function(ctx: any) {
   const input = ctx.input || {};
@@ -841,7 +842,7 @@ export default async function(ctx: any) {
         result = await getCompanyList(ctx);
         break;
       default:
-        throw new Error(`未知的 action: ${action}。支持的 actions: billingCostTabs, costOverview, costTrend, modelCostList, companyCostSummary, callSources, clientList`);
+        throw new Error(`未知的 action: ${action}。支持的 actions: billingCostTabs, costOverview, costTrend, modelCostList, companyCostSummary, callSources, clientList [v2]`);
     }
     
     return {
