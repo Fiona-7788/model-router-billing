@@ -11,6 +11,60 @@
 
 import crypto from "crypto";
 
+// 尝试加载 HTTP 客户端（trusted_node_v2 可能阻止某些模块）
+let httpGet: ((url: string, headers: Record<string, string>) => Promise<any>) | null = null;
+try {
+  // 尝试使用 node:http2
+  const http2 = require("http2");
+  httpGet = async (urlStr: string, hdrs: Record<string, string>) => {
+    return new Promise((resolve, reject) => {
+      const client = http2.connect(urlStr);
+      const req = client.request({ ":method": "GET", ":path": new URL(urlStr).pathname + new URL(urlStr).search, ...hdrs });
+      let data = "";
+      req.on("data", (chunk: string) => { data += chunk; });
+      req.on("end", () => {
+        try { resolve(JSON.parse(data)); } catch { reject(new Error("JSON parse failed")); }
+      });
+      req.on("error", reject);
+      req.end();
+    });
+  };
+} catch (_e) {
+  // http2 not available
+}
+if (!httpGet) {
+  try {
+    const httpsMod = require("https");
+    httpGet = async (urlStr: string, hdrs: Record<string, string>) => {
+      return new Promise((resolve, reject) => {
+        const parsed = new URL(urlStr);
+        const req = httpsMod.request({ hostname: parsed.hostname, port: parsed.port || 443, path: parsed.pathname + parsed.search, method: "GET", headers: hdrs }, (res: any) => {
+          let body = "";
+          res.on("data", (c: string) => { body += c; });
+          res.on("end", () => { try { resolve(JSON.parse(body)); } catch { reject(new Error("JSON parse failed")); } });
+        });
+        req.on("error", reject);
+        req.end();
+      });
+    };
+  } catch (_e2) {
+    // https not available
+  }
+}
+if (!httpGet) {
+  try {
+    // Last resort: global fetch
+    if (typeof fetch === "function") {
+      httpGet = async (urlStr: string, hdrs: Record<string, string>) => {
+        const res = await fetch(urlStr, { method: "GET", headers: hdrs });
+        return res.json();
+      };
+    }
+  } catch (_e3) {
+    // fetch not available
+  }
+}
+
 // 阿里云 AiContent API 配置
 const API_HOST = "aicontent.aliyuncs.com";
 const API_BASE = `https://${API_HOST}`;
@@ -123,9 +177,12 @@ async function callModelRouterAPI(
 
   console.log(`Calling ${action}: GET ${path}`);
 
+  if (!httpGet) {
+    throw new Error("没有可用的 HTTP 客户端（fetch/https/http2 均不可用）");
+  }
+
   try {
-    const response = await fetch(url, { method: "GET", headers });
-    const data = await response.json();
+    const data = await httpGet(url, headers);
     if (data.success === false) {
       throw new Error(`API 错误: ${data.message || data.errMessage || "未知错误"}`);
     }
