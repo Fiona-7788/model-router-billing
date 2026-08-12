@@ -293,10 +293,10 @@ async function getCostOverview(ctx: any, params: any) {
   // 过滤后汇总费用、调用次数、Token（只统计默认部门和咪咕正式，如果指定了 companyId/modelCategory 则进一步过滤）
   const filteredRows = filterByAllowedDepartments(allRows, parentMap, params.companyId, params.modelCategory);
   
-  // 计算今日费用和周期累计
+  // 计算今日费用、调用次数、Token
   let todayCost = 0;
-  let periodCalls = 0;
-  let periodTokens = 0;
+  let todayCalls = 0;
+  let todayTokens = 0;
   for (const row of filteredRows) {
     const ts = row.summaryTime || row.timestamp;
     if (ts) {
@@ -309,24 +309,24 @@ async function getCostOverview(ctx: any, params: any) {
       // 如果年月日匹配，则是今天的数据
       if (rowYear === todayYear && rowMonth === todayMonth && rowDay === todayDate) {
         todayCost += row.payableAmount || 0;
+        
+        let vals = row.values;
+        if (typeof vals === "string") {
+          try { vals = JSON.parse(vals); } catch { vals = {}; }
+        }
+        todayCalls += vals?.total_calls || 0;
+        todayTokens += (vals?.input_tokens || 0) + (vals?.output_tokens || 0);
       }
     }
-    
-    let vals = row.values;
-    if (typeof vals === "string") {
-      try { vals = JSON.parse(vals); } catch { vals = {}; }
-    }
-    periodCalls += vals?.total_calls || 0;
-    periodTokens += (vals?.input_tokens || 0) + (vals?.output_tokens || 0);
   }
 
   return {
     metrics,
     totalCost: todayCost, // 今日费用
-    totalCalls: periodCalls, // 周期累计调用次数
-    totalTokens: periodTokens, // 周期累计 Token
+    totalCalls: todayCalls, // 今日调用次数
+    totalTokens: todayTokens, // 今日 Token 消耗
     modelCount: metricMap.model_count || 0,
-    avgTokens: periodCalls > 0 ? Math.round(periodTokens / periodCalls) : 0,
+    avgTokens: todayCalls > 0 ? Math.round(todayTokens / todayCalls) : 0,
   };
 }
 
@@ -703,16 +703,16 @@ async function getCompanyCostSummary(ctx: any, params: any) {
       // 如果年月日匹配，则是今天的数据
       if (rowYear === todayYear && rowMonth === todayMonth && rowDay === todayDate) {
         entry.totalCost += row.payableAmount || 0;
+        
+        // values 可能是 JSON 字符串
+        let vals = row.values;
+        if (typeof vals === "string") {
+          try { vals = JSON.parse(vals); } catch { vals = {}; }
+        }
+        entry.totalCalls += vals?.total_calls || 0;
+        entry.totalTokens += (vals?.input_tokens || 0) + (vals?.output_tokens || 0);
       }
     }
-    
-    // values 可能是 JSON 字符串
-    let vals = row.values;
-    if (typeof vals === "string") {
-      try { vals = JSON.parse(vals); } catch { vals = {}; }
-    }
-    entry.totalCalls += vals?.total_calls || 0;
-    entry.totalTokens += (vals?.input_tokens || 0) + (vals?.output_tokens || 0);
   }
   
   console.log(`公司汇总: ${filteredRows.length} 条 breakdown → ${companyMap.size} 家公司`);
