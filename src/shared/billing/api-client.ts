@@ -204,7 +204,7 @@ async function invokeBilling<T>(action: BillingAction, params: Record<string, un
     else {
       // 使用相对路径通过 Vite 代理调用
       const appType = (window as any).__APP_TYPE__ || 'APP_DC40389CBE164B18AFAF';
-      const res = await fetch(`/service/open-api/v1/apps/${appType}/functions/billing_proxy/invoke`, {
+      const res = await fetch(`/service/openxiangda-api/v1/apps/${appType}/functions/billing_proxy/invoke`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include', // 携带 HttpOnly Cookie 认证
@@ -227,7 +227,7 @@ async function invokeBilling<T>(action: BillingAction, params: Record<string, un
     // 使用 SDK 调用
     const appType = sdk.appType || 'APP_DC40389CBE164B18AFAF';
     const res = await sdk.request({
-      url: `/service/open-api/v1/apps/${appType}/functions/billing_proxy/invoke`,
+      url: `/service/openxiangda-api/v1/apps/${appType}/functions/billing_proxy/invoke`,
       method: 'POST',
       data: { input: { action, params } },
     });
