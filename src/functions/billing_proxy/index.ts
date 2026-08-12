@@ -338,6 +338,24 @@ async function getClientList(ctx: any) {
 }
 
 /**
+ * 公司映射表：将 Model Router 客户名映射到享搭一级公司
+ * 格式：{ ModelRouter 客户名：享搭一级公司名 }
+ * 
+ * 根据享搭组织架构和 Model Router 客户列表的对应关系建立
+ */
+const COMPANY_MAPPING: Record<string, string> = {
+  // 奕阳教育及其子部门
+  "产教学中心": "奕阳教育",
+  "赛事部": "奕阳教育",
+  "业务部": "奕阳教育",
+  "白名单赛事": "奕阳教育",
+  "履约与支持": "奕阳教育",
+  
+  // 咪咕数媒（已在 resolveCompany 中处理）
+  // 其他公司如果有子部门，在这里添加映射
+};
+
+/**
  * 判断 clientName 是否是散户（咪咕用户等个人级别用户）
  * 散户应该归到父级公司名下，不单独显示
  */
@@ -348,18 +366,30 @@ function isIndividualClient(name: string): boolean {
 
 /**
  * 根据 clientId 和 clientName 确定所属公司
- * 优先查 parentMap，其次按名称模式匹配
+ * 优先级：
+ * 1. 名称模式匹配（咪咕用户 → 咪咕数媒）
+ * 2. 公司映射表（子部门 → 一级公司）
+ * 3. parentMap（叶子节点 → 父级公司）
+ * 4. 本身就是公司级节点
  */
 function resolveCompany(
   clientId: string,
   clientName: string,
   parentMap: Map<string, { parentId: string; parentName: string }>
 ): { companyId: string; companyName: string } {
-  // 1. 名称模式匹配：咪咕用户 → 咪咕数媒（最高优先级，统一 companyId）
+  // 1. 名称模式匹配：咪咕用户 → 咪咕数媒（最高优先级）
   if (isIndividualClient(clientName)) {
     return { companyId: "migu", companyName: "咪咕数媒" };
   }
-  // 2. 查 parentMap（叶子节点归到父级公司）
+  
+  // 2. 公司映射表：子部门 → 一级公司
+  if (COMPANY_MAPPING[clientName]) {
+    const mappedName = COMPANY_MAPPING[clientName];
+    // 使用一级公司名作为 companyId（确保相同公司合并）
+    return { companyId: mappedName, companyName: mappedName };
+  }
+  
+  // 3. 查 parentMap（叶子节点归到父级公司）
   const parentInfo = parentMap.get(clientId);
   if (parentInfo) {
     // 如果父级是咪咕数媒，也统一用 "migu" 作为 companyId
@@ -368,7 +398,8 @@ function resolveCompany(
     }
     return { companyId: parentInfo.parentId, companyName: parentInfo.parentName };
   }
-  // 3. 本身就是公司级节点
+  
+  // 4. 本身就是公司级节点（如南京仰格、贵州图辑等）
   return { companyId: clientId, companyName: clientName || `客户${clientId}` };
 }
 
