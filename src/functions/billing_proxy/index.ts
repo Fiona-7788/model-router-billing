@@ -209,14 +209,24 @@ const ALLOWED_COMPANIES = new Set([
  * 前端类别：大语言模型、视觉模型、语音模型、图像生成
  */
 const MODEL_TYPE_TO_CATEGORY: Record<string, string> = {
+  // 大语言模型
   Chat: "大语言模型",
   ChatMultimodal: "大语言模型",
-  Embedding: "大语言模型",
-  Rerank: "大语言模型",
-  ASR: "语音模型",
-  TTS: "语音模型",
-  ImageGeneration: "图像生成",
+  // 视觉模型
+  ImageGeneration: "视觉模型",
+  ImageEdit: "视觉模型",
   VideoGeneration: "视觉模型",
+  VideoImageGeneration: "视觉模型",
+  // 全模态模型
+  ChatFullmodal: "全模态模型",
+  // 语音模型
+  TTS: "语音模型",
+  ASR: "语音模型",
+  // 向量模型
+  Embedding: "向量模型",
+  MultimodalEmbedding: "向量模型",
+  Rerank: "向量模型",
+  MultimodalRerank: "向量模型",
 };
 
 /**
@@ -816,60 +826,6 @@ async function getCallSources(ctx: any, params: any) {
 }
 
 /**
- * 诊断 HTTP 能力
- * 测试 trusted_node_v2 沙箱中哪些 HTTP 客户端可用
- */
-async function diagnoseHttpCapabilities(ctx: any): Promise<any> {
-  const results: Record<string, any> = {};
-
-  // 1. 深入检查 ctx.utils.http
-  if (ctx.utils?.http) {
-    const httpObj = ctx.utils.http;
-    results["ctx_utils_http_type"] = typeof httpObj;
-    results["ctx_utils_http_keys"] = Object.keys(httpObj);
-    for (const key of Object.keys(httpObj)) {
-      const val = (httpObj as any)[key];
-      results[`ctx_utils_http_${key}`] = { type: typeof val, isFn: typeof val === "function" };
-    }
-
-    // 尝试使用 ctx.utils.http 发起请求
-    if (typeof httpObj.get === "function") {
-      try {
-        const r = await httpObj.get("https://httpbin.org/get");
-        results["http_get_test"] = { success: true, data: JSON.stringify(r).slice(0, 300) };
-      } catch (e: any) {
-        results["http_get_test"] = { success: false, error: e?.message?.slice(0, 200) };
-      }
-    }
-    if (typeof httpObj.request === "function") {
-      try {
-        const r = await httpObj.request({ url: "https://httpbin.org/get", method: "GET" });
-        results["http_request_test"] = { success: true, data: JSON.stringify(r).slice(0, 300) };
-      } catch (e: any) {
-        results["http_request_test"] = { success: false, error: e?.message?.slice(0, 200) };
-      }
-    }
-    if (typeof httpObj.post === "function") {
-      results["http_post"] = "available";
-    }
-  }
-
-  // 2. 深入检查 ctx.connector
-  if (ctx.connector) {
-    results["ctx_connector_keys"] = Object.keys(ctx.connector);
-    // 尝试调用 connector.invoke
-    try {
-      const r = await ctx.connector.invoke("__test__", {});
-      results["connector_invoke_test"] = { success: true, data: JSON.stringify(r).slice(0, 200) };
-    } catch (e: any) {
-      results["connector_invoke_test"] = { error: e?.message?.slice(0, 200) };
-    }
-  }
-
-  return results;
-}
-
-/**
  * Function 入口
  * Updated: 2026-08-12 - Remove secretRefs, use hardcoded credentials temporarily
  */
@@ -908,11 +864,8 @@ export default async function(ctx: any) {
         // 返回公司级列表（散户归到父级公司）
         result = await getCompanyList(ctx);
         break;
-      case "diagnose":
-        result = await diagnoseHttpCapabilities(ctx);
-        break;
       default:
-        throw new Error(`未知的 action: ${action}。支持的 actions: billingCostTabs, costOverview, costTrend, modelCostList, companyCostSummary, callSources, clientList, diagnose [v2]`);
+        throw new Error(`未知的 action: ${action}。支持的 actions: billingCostTabs, costOverview, costTrend, modelCostList, companyCostSummary, callSources, clientList [v3]`);
     }
     
     return {
