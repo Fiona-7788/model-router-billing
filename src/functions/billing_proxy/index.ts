@@ -868,79 +868,47 @@ async function getCallSources(ctx: any, params: any) {
 async function diagnoseHttpCapabilities(ctx: any): Promise<any> {
   const results: Record<string, any> = {};
 
-  // 1. 深入检查 ctx.connector
+  // 1. 深入检查 ctx.utils.http
+  if (ctx.utils?.http) {
+    const httpObj = ctx.utils.http;
+    results["ctx_utils_http_type"] = typeof httpObj;
+    results["ctx_utils_http_keys"] = Object.keys(httpObj);
+    for (const key of Object.keys(httpObj)) {
+      const val = (httpObj as any)[key];
+      results[`ctx_utils_http_${key}`] = { type: typeof val, isFn: typeof val === "function" };
+    }
+
+    // 尝试使用 ctx.utils.http 发起请求
+    if (typeof httpObj.get === "function") {
+      try {
+        const r = await httpObj.get("https://httpbin.org/get");
+        results["http_get_test"] = { success: true, data: JSON.stringify(r).slice(0, 300) };
+      } catch (e: any) {
+        results["http_get_test"] = { success: false, error: e?.message?.slice(0, 200) };
+      }
+    }
+    if (typeof httpObj.request === "function") {
+      try {
+        const r = await httpObj.request({ url: "https://httpbin.org/get", method: "GET" });
+        results["http_request_test"] = { success: true, data: JSON.stringify(r).slice(0, 300) };
+      } catch (e: any) {
+        results["http_request_test"] = { success: false, error: e?.message?.slice(0, 200) };
+      }
+    }
+    if (typeof httpObj.post === "function") {
+      results["http_post"] = "available";
+    }
+  }
+
+  // 2. 深入检查 ctx.connector
   if (ctx.connector) {
-    results["ctx_connector_type"] = typeof ctx.connector;
     results["ctx_connector_keys"] = Object.keys(ctx.connector);
-    // 尝试列出 connector 上的方法
-    for (const key of Object.keys(ctx.connector)) {
-      const val = (ctx.connector as any)[key];
-      results[`ctx_connector_${key}`] = { type: typeof val, isFn: typeof val === "function" };
-    }
-  }
-
-  // 2. 深入检查 ctx.utils
-  if (ctx.utils) {
-    results["ctx_utils_type"] = typeof ctx.utils;
-    results["ctx_utils_keys"] = Object.keys(ctx.utils);
-    for (const key of Object.keys(ctx.utils)) {
-      const val = (ctx.utils as any)[key];
-      results[`ctx_utils_${key}`] = { type: typeof val };
-    }
-  }
-
-  // 3. 深入检查 ctx.methods
-  if (ctx.methods) {
-    results["ctx_methods_type"] = typeof ctx.methods;
-    results["ctx_methods_keys"] = Object.keys(ctx.methods);
-  }
-
-  // 4. 深入检查 ctx.platform
-  if (ctx.platform) {
-    results["ctx_platform_type"] = typeof ctx.platform;
-    results["ctx_platform_keys"] = Object.keys(ctx.platform);
-  }
-
-  // 5. 深入检查 ctx.resources
-  if (ctx.resources) {
-    results["ctx_resources_type"] = typeof ctx.resources;
-    results["ctx_resources_keys"] = Object.keys(ctx.resources);
-  }
-
-  // 6. 深入检查 ctx.process
-  if (ctx.process) {
-    results["ctx_process_type"] = typeof ctx.process;
-    results["ctx_process_keys"] = Object.keys(ctx.process);
-  }
-
-  // 7. 检查 ctx.runtime
-  if (ctx.runtime) {
-    results["ctx_runtime_type"] = typeof ctx.runtime;
-    results["ctx_runtime_keys"] = Object.keys(ctx.runtime);
-  }
-
-  // 8. 检查全局对象上是否有隐藏的 HTTP 能力
-  const globalKeys = Object.getOwnPropertyNames(globalThis).filter(k => {
-    try { return k.toLowerCase().includes("http") || k.toLowerCase().includes("fetch") || k.toLowerCase().includes("request") || k.toLowerCase().includes("xml") || k.toLowerCase().includes("net"); } catch { return false; }
-  });
-  results["global_http_keys"] = globalKeys;
-
-  // 9. 尝试 globalThis.fetch 的其他方式
-  try {
-    const undiciGlobal = (globalThis as any).fetch;
-    results["globalThis_fetch"] = { exists: !!undiciGlobal, type: typeof undiciGlobal };
-  } catch (e: any) {
-    results["globalThis_fetch"] = { error: e?.message };
-  }
-
-  // 10. 检查 require 白名单（尝试更多模块）
-  const extraModules = ["stream", "buffer", "url", "querystring", "string_decoder", "zlib", "path", "fs", "os", "util", "events", "assert", "crypto"];
-  for (const mod of extraModules) {
+    // 尝试调用 connector.invoke
     try {
-      const m = require(mod);
-      results[`require_${mod}`] = { available: true };
+      const r = await ctx.connector.invoke("__test__", {});
+      results["connector_invoke_test"] = { success: true, data: JSON.stringify(r).slice(0, 200) };
     } catch (e: any) {
-      results[`require_${mod}`] = { available: false, error: e?.message?.slice(0, 80) };
+      results["connector_invoke_test"] = { error: e?.message?.slice(0, 200) };
     }
   }
 
