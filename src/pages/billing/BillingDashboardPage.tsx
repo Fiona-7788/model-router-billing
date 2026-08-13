@@ -32,7 +32,7 @@ import { cn } from "@/shared/ui";
 
 echarts.use([BarChart, TooltipComponent, LegendComponent, GridComponent, CanvasRenderer]);
 
-const MODEL_CATEGORIES = ["全部类别", "大语言模型", "视觉模型", "语音模型", "图像生成"];
+const MODEL_CATEGORIES = ["全部类别", "大语言模型", "视觉模型", "全模态模型", "语音模型", "向量模型"];
 
 function formatCurrency(value: number): string {
   if (value >= 10000) return `¥${(value / 10000).toFixed(2)}万`;
