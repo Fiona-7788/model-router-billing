@@ -409,11 +409,16 @@ export const billingApi = {
   getCompanyCostSummary: (params: BillingDashboardParams) =>
     invokeBilling<CompanyCostSummary[]>("companyCostSummary", params as unknown as Record<string, unknown>),
 
-  getCallSources: (params: CallSourcesParams) =>
-    invokeBilling<any>("callSources", params as unknown as Record<string, unknown>).then(raw => ({
-      items: (raw?.items || []).map((r: any, i: number) => mapBreakdownRow(r, i)),
-      total: raw?.total || 0,
-      page: params.page || 1,
-      pageSize: params.pageSize || 20,
-    })),
+  getCallSources: (params: CallSourcesParams) => {
+    console.log('[billingApi] getCallSources params:', JSON.stringify(params));
+    return invokeBilling<any>("callSources", params as unknown as Record<string, unknown>).then(raw => {
+      console.log('[billingApi] callSources raw response total:', raw?.total, 'items count:', raw?.items?.length);
+      return {
+        items: (raw?.items || []).map((r: any, i: number) => mapBreakdownRow(r, i)),
+        total: raw?.total || 0,
+        page: params.page || 1,
+        pageSize: params.pageSize || 20,
+      };
+    });
+  },
 };
