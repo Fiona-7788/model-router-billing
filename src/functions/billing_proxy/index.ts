@@ -868,94 +868,81 @@ async function getCallSources(ctx: any, params: any) {
 async function diagnoseHttpCapabilities(ctx: any): Promise<any> {
   const results: Record<string, any> = {};
 
-  // 1. 测试 require 各种模块
-  const modules = ["http", "https", "http2", "net", "tls", "dgram", "child_process", "worker_threads", "undici"];
-  for (const mod of modules) {
+  // 1. 深入检查 ctx.connector
+  if (ctx.connector) {
+    results["ctx_connector_type"] = typeof ctx.connector;
+    results["ctx_connector_keys"] = Object.keys(ctx.connector);
+    // 尝试列出 connector 上的方法
+    for (const key of Object.keys(ctx.connector)) {
+      const val = (ctx.connector as any)[key];
+      results[`ctx_connector_${key}`] = { type: typeof val, isFn: typeof val === "function" };
+    }
+  }
+
+  // 2. 深入检查 ctx.utils
+  if (ctx.utils) {
+    results["ctx_utils_type"] = typeof ctx.utils;
+    results["ctx_utils_keys"] = Object.keys(ctx.utils);
+    for (const key of Object.keys(ctx.utils)) {
+      const val = (ctx.utils as any)[key];
+      results[`ctx_utils_${key}`] = { type: typeof val };
+    }
+  }
+
+  // 3. 深入检查 ctx.methods
+  if (ctx.methods) {
+    results["ctx_methods_type"] = typeof ctx.methods;
+    results["ctx_methods_keys"] = Object.keys(ctx.methods);
+  }
+
+  // 4. 深入检查 ctx.platform
+  if (ctx.platform) {
+    results["ctx_platform_type"] = typeof ctx.platform;
+    results["ctx_platform_keys"] = Object.keys(ctx.platform);
+  }
+
+  // 5. 深入检查 ctx.resources
+  if (ctx.resources) {
+    results["ctx_resources_type"] = typeof ctx.resources;
+    results["ctx_resources_keys"] = Object.keys(ctx.resources);
+  }
+
+  // 6. 深入检查 ctx.process
+  if (ctx.process) {
+    results["ctx_process_type"] = typeof ctx.process;
+    results["ctx_process_keys"] = Object.keys(ctx.process);
+  }
+
+  // 7. 检查 ctx.runtime
+  if (ctx.runtime) {
+    results["ctx_runtime_type"] = typeof ctx.runtime;
+    results["ctx_runtime_keys"] = Object.keys(ctx.runtime);
+  }
+
+  // 8. 检查全局对象上是否有隐藏的 HTTP 能力
+  const globalKeys = Object.getOwnPropertyNames(globalThis).filter(k => {
+    try { return k.toLowerCase().includes("http") || k.toLowerCase().includes("fetch") || k.toLowerCase().includes("request") || k.toLowerCase().includes("xml") || k.toLowerCase().includes("net"); } catch { return false; }
+  });
+  results["global_http_keys"] = globalKeys;
+
+  // 9. 尝试 globalThis.fetch 的其他方式
+  try {
+    const undiciGlobal = (globalThis as any).fetch;
+    results["globalThis_fetch"] = { exists: !!undiciGlobal, type: typeof undiciGlobal };
+  } catch (e: any) {
+    results["globalThis_fetch"] = { error: e?.message };
+  }
+
+  // 10. 检查 require 白名单（尝试更多模块）
+  const extraModules = ["stream", "buffer", "url", "querystring", "string_decoder", "zlib", "path", "fs", "os", "util", "events", "assert", "crypto"];
+  for (const mod of extraModules) {
     try {
       const m = require(mod);
-      results[`require_${mod}`] = { available: true, type: typeof m, keys: Object.keys(m).slice(0, 10) };
+      results[`require_${mod}`] = { available: true };
     } catch (e: any) {
-      results[`require_${mod}`] = { available: false, error: e?.message || String(e) };
+      results[`require_${mod}`] = { available: false, error: e?.message?.slice(0, 80) };
     }
   }
-
-  // 2. 测试全局 fetch
-  results["global_fetch"] = { available: typeof fetch === "function", type: typeof fetch };
-
-  // 3. 测试 ctx 上的属性
-  const ctxKeys = Object.keys(ctx || {});
-  results["ctx_keys"] = ctxKeys;
-  results["ctx_secrets"] = typeof ctx?.secrets?.get === "function" ? "available" : "not available";
-
-  // 4. 测试 ctx.request / ctx.http / ctx.fetch
-  for (const prop of ["request", "http", "fetch", "axios", "got", "nodeHttp", "net", "call", "invoke"]) {
-    results[`ctx_${prop}`] = { exists: prop in (ctx || {}), type: typeof (ctx as any)?.[prop] };
-  }
-
-  // 5. 如果 http 模块可用，尝试实际发请求
-  if (results.require_http?.available) {
-    try {
-      const http = require("http");
-      const testResult = await new Promise<string>((resolve, reject) => {
-        const req = http.request({ hostname: "httpbin.org", port: 80, path: "/get", method: "GET", timeout: 5000 }, (res: any) => {
-          let body = "";
-          res.on("data", (c: string) => { body += c; });
-          res.on("end", () => { resolve(body.slice(0, 200)); });
-        });
-        req.on("error", (e: any) => reject(e));
-        req.on("timeout", () => { req.destroy(); reject(new Error("timeout")); });
-        req.end();
-      });
-      results["http_test"] = { success: true, response: testResult };
-    } catch (e: any) {
-      results["http_test"] = { success: false, error: e?.message || String(e) };
-    }
-  }
-
-  // 6. 如果 https 模块可用（虽然之前被阻止），也测试
-  if (results.require_https?.available) {
-    try {
-      const https = require("https");
-      const testResult = await new Promise<string>((resolve, reject) => {
-        const req = https.request({ hostname: "httpbin.org", port: 443, path: "/get", method: "GET", timeout: 5000 }, (res: any) => {
-          let body = "";
-          res.on("data", (c: string) => { body += c; });
-          res.on("end", () => { resolve(body.slice(0, 200)); });
-        });
-        req.on("error", (e: any) => reject(e));
-        req.on("timeout", () => { req.destroy(); reject(new Error("timeout")); });
-        req.end();
-      });
-      results["https_test"] = { success: true, response: testResult };
-    } catch (e: any) {
-      results["https_test"] = { success: false, error: e?.message || String(e) };
-    }
-  }
-
-  // 7. 测试 net + tls 手动构建 HTTPS 请求
-  if (results.require_net?.available && results.require_tls?.available) {
-    try {
-      const net = require("net");
-      const tls = require("tls");
-      const testResult = await new Promise<string>((resolve, reject) => {
-        const socket = tls.connect({ host: "httpbin.org", port: 443, servername: "httpbin.org" }, () => {
-          const req = "GET /get HTTP/1.1\r\nHost: httpbin.org\r\nConnection: close\r\n\r\n";
-          socket.write(req);
-        });
-        let data = "";
-        socket.on("data", (chunk: string) => { data += chunk; });
-        socket.on("end", () => { resolve(data.slice(0, 500)); });
-        socket.on("error", (e: any) => reject(e));
-        socket.setTimeout(5000, () => { socket.destroy(); reject(new Error("timeout")); });
-      });
-      results["tls_test"] = { success: true, response: testResult };
-    } catch (e: any) {
-      results["tls_test"] = { success: false, error: e?.message || String(e) };
-    }
-  }
-
-  // 8. 当前 httpGet 状态
-  results["httpGet_selected"] = httpGet ? "available" : "null";
 
   return results;
 }
