@@ -677,3 +677,17 @@
 - targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
 - followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
 - user: fengyujing
+## 2026-08-13T02:17:08.970Z
+
+- command: openxiangda resource publish
+- reason: fix call sources
+- targets: {"forms":[],"pages":[],"functions":["billing_proxy"],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-13T02:18:17.780Z
+
+- command: openxiangda runtime deploy
+- reason: 部署调取来源公司名归一化修复
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing

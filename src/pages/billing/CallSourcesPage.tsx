@@ -174,7 +174,7 @@ export function CallSourcesPage() {
               }}
               options={[
                 { label: "全部公司", value: undefined },
-                ...companies.map(c => ({ label: c.name, value: c.id })),
+                ...companies.map(c => ({ label: c.name, value: c.name })),
               ]}
             />
           </div>
