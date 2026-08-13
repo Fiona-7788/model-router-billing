@@ -11,59 +11,9 @@
 
 import crypto from "crypto";
 
-// 尝试加载 HTTP 客户端（trusted_node_v2 可能阻止某些模块）
-let httpGet: ((url: string, headers: Record<string, string>) => Promise<any>) | null = null;
-try {
-  // 尝试使用 node:http2
-  const http2 = require("http2");
-  httpGet = async (urlStr: string, hdrs: Record<string, string>) => {
-    return new Promise((resolve, reject) => {
-      const client = http2.connect(urlStr);
-      const req = client.request({ ":method": "GET", ":path": new URL(urlStr).pathname + new URL(urlStr).search, ...hdrs });
-      let data = "";
-      req.on("data", (chunk: string) => { data += chunk; });
-      req.on("end", () => {
-        try { resolve(JSON.parse(data)); } catch { reject(new Error("JSON parse failed")); }
-      });
-      req.on("error", reject);
-      req.end();
-    });
-  };
-} catch (_e) {
-  // http2 not available
-}
-if (!httpGet) {
-  try {
-    const httpsMod = require("https");
-    httpGet = async (urlStr: string, hdrs: Record<string, string>) => {
-      return new Promise((resolve, reject) => {
-        const parsed = new URL(urlStr);
-        const req = httpsMod.request({ hostname: parsed.hostname, port: parsed.port || 443, path: parsed.pathname + parsed.search, method: "GET", headers: hdrs }, (res: any) => {
-          let body = "";
-          res.on("data", (c: string) => { body += c; });
-          res.on("end", () => { try { resolve(JSON.parse(body)); } catch { reject(new Error("JSON parse failed")); } });
-        });
-        req.on("error", reject);
-        req.end();
-      });
-    };
-  } catch (_e2) {
-    // https not available
-  }
-}
-if (!httpGet) {
-  try {
-    // Last resort: global fetch
-    if (typeof fetch === "function") {
-      httpGet = async (urlStr: string, hdrs: Record<string, string>) => {
-        const res = await fetch(urlStr, { method: "GET", headers: hdrs });
-        return res.json();
-      };
-    }
-  } catch (_e3) {
-    // fetch not available
-  }
-}
+// trusted_node_v2 沙箱封锁了所有原生网络模块（http/https/http2/net/tls）和全局 fetch
+// 使用 ctx.utils.http（基于 axios）作为唯一的 HTTP 客户端
+// ctx.utils.http 提供 get/post/put/patch/delete/request 方法
 
 // 阿里云 AiContent API 配置
 const API_HOST = "aicontent.aliyuncs.com";
@@ -177,13 +127,17 @@ async function callModelRouterAPI(
 
   console.log(`Calling ${action}: GET ${path}`);
 
-  if (!httpGet) {
-    throw new Error("没有可用的 HTTP 客户端（fetch/https/http2 均不可用）");
+  // 使用 ctx.utils.http（SDK 提供的 axios 封装）
+  const httpClient = ctx?.utils?.http;
+  if (!httpClient || typeof httpClient.get !== "function") {
+    throw new Error("ctx.utils.http 不可用，无法发起 HTTP 请求");
   }
 
   try {
-    const data = await httpGet(url, headers);
-    if (data.success === false) {
+    const response = await httpClient.get(url, { headers });
+    // axios 响应格式: { data: {...}, status: 200, ... }
+    const data = response?.data ?? response;
+    if (data?.success === false) {
       throw new Error(`API 错误: ${data.message || data.errMessage || "未知错误"}`);
     }
     return data;
