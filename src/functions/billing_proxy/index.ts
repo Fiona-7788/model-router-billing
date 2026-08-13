@@ -862,6 +862,105 @@ async function getCallSources(ctx: any, params: any) {
 }
 
 /**
+ * 诊断 HTTP 能力
+ * 测试 trusted_node_v2 沙箱中哪些 HTTP 客户端可用
+ */
+async function diagnoseHttpCapabilities(ctx: any): Promise<any> {
+  const results: Record<string, any> = {};
+
+  // 1. 测试 require 各种模块
+  const modules = ["http", "https", "http2", "net", "tls", "dgram", "child_process", "worker_threads", "undici"];
+  for (const mod of modules) {
+    try {
+      const m = require(mod);
+      results[`require_${mod}`] = { available: true, type: typeof m, keys: Object.keys(m).slice(0, 10) };
+    } catch (e: any) {
+      results[`require_${mod}`] = { available: false, error: e?.message || String(e) };
+    }
+  }
+
+  // 2. 测试全局 fetch
+  results["global_fetch"] = { available: typeof fetch === "function", type: typeof fetch };
+
+  // 3. 测试 ctx 上的属性
+  const ctxKeys = Object.keys(ctx || {});
+  results["ctx_keys"] = ctxKeys;
+  results["ctx_secrets"] = typeof ctx?.secrets?.get === "function" ? "available" : "not available";
+
+  // 4. 测试 ctx.request / ctx.http / ctx.fetch
+  for (const prop of ["request", "http", "fetch", "axios", "got", "nodeHttp", "net", "call", "invoke"]) {
+    results[`ctx_${prop}`] = { exists: prop in (ctx || {}), type: typeof (ctx as any)?.[prop] };
+  }
+
+  // 5. 如果 http 模块可用，尝试实际发请求
+  if (results.require_http?.available) {
+    try {
+      const http = require("http");
+      const testResult = await new Promise<string>((resolve, reject) => {
+        const req = http.request({ hostname: "httpbin.org", port: 80, path: "/get", method: "GET", timeout: 5000 }, (res: any) => {
+          let body = "";
+          res.on("data", (c: string) => { body += c; });
+          res.on("end", () => { resolve(body.slice(0, 200)); });
+        });
+        req.on("error", (e: any) => reject(e));
+        req.on("timeout", () => { req.destroy(); reject(new Error("timeout")); });
+        req.end();
+      });
+      results["http_test"] = { success: true, response: testResult };
+    } catch (e: any) {
+      results["http_test"] = { success: false, error: e?.message || String(e) };
+    }
+  }
+
+  // 6. 如果 https 模块可用（虽然之前被阻止），也测试
+  if (results.require_https?.available) {
+    try {
+      const https = require("https");
+      const testResult = await new Promise<string>((resolve, reject) => {
+        const req = https.request({ hostname: "httpbin.org", port: 443, path: "/get", method: "GET", timeout: 5000 }, (res: any) => {
+          let body = "";
+          res.on("data", (c: string) => { body += c; });
+          res.on("end", () => { resolve(body.slice(0, 200)); });
+        });
+        req.on("error", (e: any) => reject(e));
+        req.on("timeout", () => { req.destroy(); reject(new Error("timeout")); });
+        req.end();
+      });
+      results["https_test"] = { success: true, response: testResult };
+    } catch (e: any) {
+      results["https_test"] = { success: false, error: e?.message || String(e) };
+    }
+  }
+
+  // 7. 测试 net + tls 手动构建 HTTPS 请求
+  if (results.require_net?.available && results.require_tls?.available) {
+    try {
+      const net = require("net");
+      const tls = require("tls");
+      const testResult = await new Promise<string>((resolve, reject) => {
+        const socket = tls.connect({ host: "httpbin.org", port: 443, servername: "httpbin.org" }, () => {
+          const req = "GET /get HTTP/1.1\r\nHost: httpbin.org\r\nConnection: close\r\n\r\n";
+          socket.write(req);
+        });
+        let data = "";
+        socket.on("data", (chunk: string) => { data += chunk; });
+        socket.on("end", () => { resolve(data.slice(0, 500)); });
+        socket.on("error", (e: any) => reject(e));
+        socket.setTimeout(5000, () => { socket.destroy(); reject(new Error("timeout")); });
+      });
+      results["tls_test"] = { success: true, response: testResult };
+    } catch (e: any) {
+      results["tls_test"] = { success: false, error: e?.message || String(e) };
+    }
+  }
+
+  // 8. 当前 httpGet 状态
+  results["httpGet_selected"] = httpGet ? "available" : "null";
+
+  return results;
+}
+
+/**
  * Function 入口
  * Updated: 2026-08-12 - Remove secretRefs, use hardcoded credentials temporarily
  */
@@ -900,8 +999,11 @@ export default async function(ctx: any) {
         // 返回公司级列表（散户归到父级公司）
         result = await getCompanyList(ctx);
         break;
+      case "diagnose":
+        result = await diagnoseHttpCapabilities(ctx);
+        break;
       default:
-        throw new Error(`未知的 action: ${action}。支持的 actions: billingCostTabs, costOverview, costTrend, modelCostList, companyCostSummary, callSources, clientList [v2]`);
+        throw new Error(`未知的 action: ${action}。支持的 actions: billingCostTabs, costOverview, costTrend, modelCostList, companyCostSummary, callSources, clientList, diagnose [v2]`);
     }
     
     return {
