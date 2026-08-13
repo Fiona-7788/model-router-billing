@@ -796,32 +796,64 @@ async function getCompanyCostSummary(ctx: any, params: any) {
 
 /**
  * 获取调取来源明细（计费明细）
- * API: GET /api/v1/modelRouter/open/billing/cost/breakdown
+ * 返回归一化后的公司名（子部门统一显示公司名称）
+ * 支持按公司过滤
  */
 async function getCallSources(ctx: any, params: any) {
   const now = Math.floor(Date.now() / 1000);
-  const startTime = params.startTime || now - 86400 * 30;
-  const endTime = params.endTime || now;
   
-  const breakdownParams: Record<string, unknown> = {
-    startTime,
-    endTime,
-    granularity: params.granularity || "daily",
-    clientId: params.clientId,
-    apiKeyId: params.apiKeyId,
-    memberUserIds: params.memberUserIds,
-    pageSize: params.pageSize || 20,
-    page: params.page || 1,
-  };
+  // 前端传入 date 字符串（如 "2026-08-13"），转换为北京时间当日时间范围
+  let startTime: number;
+  let endTime: number;
+  if (params.date) {
+    // 解析日期字符串为北京时间当日 00:00:00 ~ 23:59:59
+    const [y, m, d] = params.date.split("-").map(Number);
+    const dayStartUTC = Date.UTC(y, m - 1, d) / 1000 - 8 * 3600; // 北京时间 00:00 = UTC 前一天 16:00
+    startTime = dayStartUTC;
+    endTime = dayStartUTC + 86400;
+  } else {
+    startTime = params.startTime || now - 86400 * 30;
+    endTime = params.endTime || now;
+  }
   
-  const data = await callModelRouterAPI(ctx, "/api/v1/modelRouter/open/billing/cost/breakdown", breakdownParams, "ModelRouterQueryBillingCostBreakdown");
+  // 获取全部 breakdown 数据 + 客户-父级映射
+  const [allRows, parentMap] = await Promise.all([
+    fetchAllBreakdownRows(ctx, { startTime, endTime, granularity: "daily" }),
+    buildClientParentMap(ctx),
+  ]);
   
-  // breakdown 可能返回分页数据
-  const items = data?.data?.list || data?.data?.rows || data?.data || [];
+  // 归一化公司名 + 过滤
+  const companyId = params.companyId;
+  const normalizedRows: any[] = [];
+  for (const row of allRows) {
+    const clientId = String(row.clientId || "");
+    const clientName = row.clientName || "";
+    const { companyId: resolvedCompanyId, companyName } = resolveCompany(clientId, clientName, parentMap);
+    
+    // 只保留允许的公司
+    if (!ALLOWED_COMPANIES.has(companyName)) continue;
+    
+    // 如果指定了 companyId，进一步过滤
+    if (companyId && resolvedCompanyId !== companyId && companyName !== companyId) continue;
+    
+    normalizedRows.push({
+      ...row,
+      company: companyName,
+      companyId: resolvedCompanyId,
+    });
+  }
+  
+  // 分页
+  const page = params.page || 1;
+  const pageSize = params.pageSize || 20;
+  const start = (page - 1) * pageSize;
+  const pagedItems = normalizedRows.slice(start, start + pageSize);
+  
   return {
-    items: Array.isArray(items) ? items : [],
-    total: data?.data?.total || items.length || 0,
-    nextToken: data?.data?.nextToken,
+    items: pagedItems,
+    total: normalizedRows.length,
+    page,
+    pageSize,
   };
 }
 

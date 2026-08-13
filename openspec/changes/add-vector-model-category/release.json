@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "openxiangda-sdd-v2",
+  "changeId": "add-vector-model-category",
+  "mainlinePolicy": "publish-from-main-v1",
+  "releaseSourceRevision": {
+    "repo": "sha256:6342604c033e10a19edc95e861a4c0d8b745e6302f6345c21dfcd1eec3698500",
+    "baseCommit": "9fe531efff7829fe5d6c07f22b2efdbc01d8d429",
+    "treeHash": "958735ec2d5404961fc72cdb4c48398a19b2997a",
+    "branch": "main",
+    "remoteName": "origin",
+    "remoteUrlHash": "sha256:ef44ed468b235a0845b38995ceb0b0da4b613b88b2430c68fd8f40d3fa500b88",
+    "mainBranch": "main",
+    "mainTipCommit": "9fe531efff7829fe5d6c07f22b2efdbc01d8d429",
+    "capturedAt": "2026-08-13T02:04:27.213Z"
+  }
+}

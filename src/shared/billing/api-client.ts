@@ -266,7 +266,7 @@ function mapBreakdownRow(row: any, index: number): CallSourceRecord {
   const outputTokens = values.output_tokens ?? 0;
   return {
     id: row.id || row.apiKeyId || `row-${index}`,
-    company: row.clientName || row.company || "未知",
+    company: row.company || row.clientName || "未知",
     model: row.modelName || row.modelCode || row.model || "未知",
     modelCategory: row.modelType || row.modelCategory || "未知",
     calls: values.total_calls ?? row.total_calls ?? 0,
