@@ -219,8 +219,8 @@ function mapOverviewResponse(raw: any): CostOverviewMetrics {
       currentPeriodCost: totalCost,
       lastPeriodCost: raw.lastPeriodCost ?? 0,
       costChangeRate: raw.costChangeRate ?? 0,
-      totalCalls: totalCalls || m.total_calls || 0,
-      totalTokens: totalTokens || m.total_tokens || 0,
+      totalCalls,
+      totalTokens,
     };
   }
   return {

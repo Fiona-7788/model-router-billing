@@ -308,12 +308,12 @@ export function BillingDashboardPage() {
             />
             <MetricCard
               icon={<BarChart3 size={20} />}
-              label="总调用次数"
+              label="当日调用次数"
               value={formatNumber(overview.totalCalls)}
             />
             <MetricCard
               icon={<Layers size={20} />}
-              label="总 Token 消耗"
+              label="当日 Token 消耗"
               value={formatNumber(overview.totalTokens)}
             />
             <MetricCard
