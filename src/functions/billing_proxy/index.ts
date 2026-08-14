@@ -925,33 +925,15 @@ async function archiveBillingData(ctx: any, params: any) {
     
     let saveResult: any = null;
     
-    // 优先尝试 ctx.form (平台内置表单 API)
-    if (ctx?.form && typeof ctx.form.saveFormData === "function") {
-      saveResult = await ctx.form.saveFormData({
+    // 使用 ctx.form.createOne (平台内置表单 API)
+    if (ctx?.form && typeof ctx.form.createOne === "function") {
+      saveResult = await ctx.form.createOne({
         formUuid: ARCHIVE_FORM_UUID,
         formDataJson,
       });
-    } else if (ctx?.form && typeof ctx.form.create === "function") {
-      saveResult = await ctx.form.create({
-        formUuid: ARCHIVE_FORM_UUID,
-        formDataJson,
-      });
+      console.log(`ctx.form.createOne 成功`);
     } else {
-      // 回退到 HTTP API
-      const httpClient = ctx?.utils?.http;
-      if (!httpClient) throw new Error("ctx.utils.http 不可用");
-      const appType = ctx?.app?.appType || ctx?.appType || "APP_DC40389CBE164B18AFAF";
-      const platformUrl = ctx?.platform?.url || ctx?.platformUrl || "https://yida.wisejob.cn";
-      const saveUrl = `${platformUrl}/service/${appType}/v1/form/saveFormData.json`;
-      
-      const headers: Record<string, string> = { "Content-Type": "application/x-www-form-urlencoded" };
-      if (ctx?.platform?.token) headers["Authorization"] = `Bearer ${ctx.platform.token}`;
-      
-      const response = await httpClient.post(saveUrl,
-        new URLSearchParams({ formUuid: ARCHIVE_FORM_UUID, formDataJson }).toString(),
-        { headers }
-      );
-      saveResult = response?.data ?? response;
+      throw new Error("ctx.form.createOne 不可用");
     }
     
     console.log(`归档保存响应:`, JSON.stringify(saveResult).slice(0, 500));
@@ -983,61 +965,25 @@ async function queryLocalBillingData(ctx: any, params: any) {
   const targetDate = params.date;
   if (!targetDate) throw new Error("缺少 date 参数");
   
-  const httpClient = ctx?.utils?.http;
-  if (!httpClient) throw new Error("ctx.utils.http 不可用");
-  
-  const appType = ctx?.appType || "APP_DC40389CBE164B18AFAF";
-  const platformUrl = ctx?.platformUrl || "https://yida.wisejob.cn";
-  
-  // 计算目标日期的时间范围（用于搜索）
   const [y, m, d] = targetDate.split("-").map(Number);
   const beijingOffset = 8 * 3600;
   const dayStart = Date.UTC(y, m - 1, d) / 1000 - beijingOffset;
   const dayEnd = dayStart + 86400;
   
-  const searchUrl = `${platformUrl}/service/${appType}/v1/form/advancedSearch.json`;
-  
-  // 尝试简单搜索：只按 formUuid 搜索，不按字段过滤
-  const searchParams = new URLSearchParams({
-    formUuid: ARCHIVE_FORM_UUID,
-    currentPage: "1",
-    pageSize: "50",
-  });
-  
   try {
     let items: any[] = [];
     
-    // 优先尝试 ctx.form (平台内置表单 API)
-    if (ctx?.form && typeof ctx.form.advancedSearch === "function") {
-      const searchResult = await ctx.form.advancedSearch({
+    // 使用 ctx.form.queryMany (平台内置表单 API)
+    if (ctx?.form && typeof ctx.form.queryMany === "function") {
+      const searchResult = await ctx.form.queryMany({
         formUuid: ARCHIVE_FORM_UUID,
         currentPage: 1,
-        pageSize: 50,
+        pageSize: 100,
       });
-      items = searchResult?.data || searchResult?.resultList || [];
-    } else if (ctx?.form && typeof ctx.form.search === "function") {
-      const searchResult = await ctx.form.search({
-        formUuid: ARCHIVE_FORM_UUID,
-        currentPage: 1,
-        pageSize: 50,
-      });
-      items = searchResult?.data || searchResult?.resultList || [];
+      items = searchResult?.data || searchResult?.resultList || searchResult || [];
+      console.log(`ctx.form.queryMany 返回: ${Array.isArray(items) ? items.length : JSON.stringify(searchResult).slice(0, 200)}`);
     } else {
-      // 回退到 HTTP API
-      const httpClient = ctx?.utils?.http;
-      if (!httpClient) throw new Error("ctx.utils.http 不可用");
-      const appType = ctx?.app?.appType || ctx?.appType || "APP_DC40389CBE164B18AFAF";
-      const platformUrl = ctx?.platform?.url || ctx?.platformUrl || "https://yida.wisejob.cn";
-      const searchUrl = `${platformUrl}/service/${appType}/v1/form/advancedSearch.json`;
-      
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (ctx?.platform?.token) headers["Authorization"] = `Bearer ${ctx.platform.token}`;
-      
-      console.log(`搜索归档数据 (HTTP): ${searchUrl}`);
-      const response = await httpClient.get(`${searchUrl}?formUuid=${ARCHIVE_FORM_UUID}&currentPage=1&pageSize=50`, { headers });
-      const data = response?.data ?? response;
-      console.log(`搜索响应:`, JSON.stringify(data).slice(0, 500));
-      items = data?.data || data?.resultList || [];
+      throw new Error("ctx.form.queryMany 不可用");
     }
     
     console.log(`ctx.form 方法: ${Object.keys(ctx?.form || {}).filter(k => typeof (ctx.form as any)[k] === 'function').join(', ')}`);
