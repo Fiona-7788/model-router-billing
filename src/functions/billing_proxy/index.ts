@@ -902,47 +902,53 @@ async function archiveBillingData(ctx: any, params: any) {
     archivedAt: new Date().toISOString(),
   };
   
-  // 保存到表单
-  const httpClient = ctx?.utils?.http;
-  if (!httpClient) throw new Error("ctx.utils.http 不可用");
-  
-  const appType = ctx?.appType || "APP_DC40389CBE164B18AFAF";
-  const platformUrl = ctx?.platformUrl || "https://yida.wisejob.cn";
-  const saveUrl = `${platformUrl}/service/${appType}/v1/form/saveFormData.json`;
-  
-  const formDataJson = JSON.stringify({
-    archive_date: startTime * 1000, // 毫秒时间戳
-    data_json: JSON.stringify(archiveData),
-    record_count: normalizedRows.length,
-    archive_type: params.archiveType || "daily",
-  });
-  
   try {
-    // 构建请求头，尝试从 ctx 获取认证信息
-    const headers: Record<string, string> = {
-      "Content-Type": "application/x-www-form-urlencoded",
-    };
-    // 尝试从 ctx 获取 token 或 cookie
-    if (ctx?.token) headers["Authorization"] = `Bearer ${ctx.token}`;
-    if (ctx?.accessToken) headers["Authorization"] = `Bearer ${ctx.accessToken}`;
-    if (ctx?.authToken) headers["Authorization"] = `Bearer ${ctx.authToken}`;
-    if (ctx?.cookie) headers["Cookie"] = ctx.cookie;
+    // 使用 ctx.form 或 ctx.utils.http 保存表单数据
+    const formDataJson = JSON.stringify({
+      archive_date: startTime * 1000,
+      data_json: JSON.stringify(archiveData),
+      record_count: normalizedRows.length,
+      archive_type: params.archiveType || "daily",
+    });
     
-    const response = await httpClient.post(saveUrl, 
-      new URLSearchParams({
+    let saveResult: any = null;
+    
+    // 优先尝试 ctx.form (平台内置表单 API)
+    if (ctx?.form && typeof ctx.form.saveFormData === "function") {
+      saveResult = await ctx.form.saveFormData({
         formUuid: ARCHIVE_FORM_UUID,
         formDataJson,
-      }).toString(),
-      { headers }
-    );
-    const data = response?.data ?? response;
-    console.log(`归档保存响应:`, JSON.stringify(data).slice(0, 500));
+      });
+    } else if (ctx?.form && typeof ctx.form.create === "function") {
+      saveResult = await ctx.form.create({
+        formUuid: ARCHIVE_FORM_UUID,
+        formDataJson,
+      });
+    } else {
+      // 回退到 HTTP API
+      const httpClient = ctx?.utils?.http;
+      if (!httpClient) throw new Error("ctx.utils.http 不可用");
+      const appType = ctx?.app?.appType || ctx?.appType || "APP_DC40389CBE164B18AFAF";
+      const platformUrl = ctx?.platform?.url || ctx?.platformUrl || "https://yida.wisejob.cn";
+      const saveUrl = `${platformUrl}/service/${appType}/v1/form/saveFormData.json`;
+      
+      const headers: Record<string, string> = { "Content-Type": "application/x-www-form-urlencoded" };
+      if (ctx?.platform?.token) headers["Authorization"] = `Bearer ${ctx.platform.token}`;
+      
+      const response = await httpClient.post(saveUrl,
+        new URLSearchParams({ formUuid: ARCHIVE_FORM_UUID, formDataJson }).toString(),
+        { headers }
+      );
+      saveResult = response?.data ?? response;
+    }
+    
+    console.log(`归档保存响应:`, JSON.stringify(saveResult).slice(0, 500));
     console.log(`归档 ${targetDate} 成功: ${normalizedRows.length} 条记录`);
     return {
       success: true,
       date: targetDate,
       recordCount: normalizedRows.length,
-      formInstId: data?.formInstId || data?.data?.formInstId || null,
+      formInstId: saveResult?.formInstId || saveResult?.data?.formInstId || saveResult?.result?.formInstId || null,
     };
   } catch (error: any) {
     console.error(`归档 ${targetDate} 失败:`, error?.message);
@@ -987,21 +993,43 @@ async function queryLocalBillingData(ctx: any, params: any) {
   });
   
   try {
-    // 构建请求头，尝试从 ctx 获取认证信息
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
-    if (ctx?.token) headers["Authorization"] = `Bearer ${ctx.token}`;
-    if (ctx?.accessToken) headers["Authorization"] = `Bearer ${ctx.accessToken}`;
-    if (ctx?.authToken) headers["Authorization"] = `Bearer ${ctx.authToken}`;
-    if (ctx?.cookie) headers["Cookie"] = ctx.cookie;
+    let items: any[] = [];
     
-    console.log(`搜索归档数据: ${searchUrl}?${searchParams.toString()}`);
-    console.log(`ctx keys: ${Object.keys(ctx || {}).join(', ')}`);
-    const response = await httpClient.get(`${searchUrl}?${searchParams.toString()}`, { headers });
-    const data = response?.data ?? response;
-    console.log(`搜索响应:`, JSON.stringify(data).slice(0, 500));
-    const items = data?.data || data?.resultList || [];
+    // 优先尝试 ctx.form (平台内置表单 API)
+    if (ctx?.form && typeof ctx.form.advancedSearch === "function") {
+      const searchResult = await ctx.form.advancedSearch({
+        formUuid: ARCHIVE_FORM_UUID,
+        currentPage: 1,
+        pageSize: 50,
+      });
+      items = searchResult?.data || searchResult?.resultList || [];
+    } else if (ctx?.form && typeof ctx.form.search === "function") {
+      const searchResult = await ctx.form.search({
+        formUuid: ARCHIVE_FORM_UUID,
+        currentPage: 1,
+        pageSize: 50,
+      });
+      items = searchResult?.data || searchResult?.resultList || [];
+    } else {
+      // 回退到 HTTP API
+      const httpClient = ctx?.utils?.http;
+      if (!httpClient) throw new Error("ctx.utils.http 不可用");
+      const appType = ctx?.app?.appType || ctx?.appType || "APP_DC40389CBE164B18AFAF";
+      const platformUrl = ctx?.platform?.url || ctx?.platformUrl || "https://yida.wisejob.cn";
+      const searchUrl = `${platformUrl}/service/${appType}/v1/form/advancedSearch.json`;
+      
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (ctx?.platform?.token) headers["Authorization"] = `Bearer ${ctx.platform.token}`;
+      
+      console.log(`搜索归档数据 (HTTP): ${searchUrl}`);
+      const response = await httpClient.get(`${searchUrl}?formUuid=${ARCHIVE_FORM_UUID}&currentPage=1&pageSize=50`, { headers });
+      const data = response?.data ?? response;
+      console.log(`搜索响应:`, JSON.stringify(data).slice(0, 500));
+      items = data?.data || data?.resultList || [];
+    }
+    
+    console.log(`ctx.form 方法: ${Object.keys(ctx?.form || {}).filter(k => typeof (ctx.form as any)[k] === 'function').join(', ')}`);
+    console.log(`搜索到 ${Array.isArray(items) ? items.length : 0} 条归档记录`);
     
     // 在返回的结果中按日期过滤
     const matchedItems = Array.isArray(items) ? items.filter((item: any) => {
