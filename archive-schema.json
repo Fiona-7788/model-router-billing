@@ -1,0 +1,35 @@
+{
+  "formUuid": "FORM_F52E3E6DA4874C5BB8B1E6B2FA41AD3A",
+  "formName": "账单数据归档",
+  "formType": "receipt",
+  "fields": [
+    {
+      "fieldId": "archive_date",
+      "componentName": "DateField",
+      "label": "归档日期",
+      "required": true
+    },
+    {
+      "fieldId": "data_json",
+      "componentName": "TextAreaField",
+      "label": "归档数据(JSON)",
+      "required": true
+    },
+    {
+      "fieldId": "record_count",
+      "componentName": "NumberField",
+      "label": "记录数",
+      "required": false
+    },
+    {
+      "fieldId": "archive_type",
+      "componentName": "SelectField",
+      "label": "归档类型",
+      "required": true,
+      "options": [
+        { "label": "每日归档", "value": "daily" },
+        { "label": "手动归档", "value": "manual" }
+      ]
+    }
+  ]
+}
