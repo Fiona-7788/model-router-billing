@@ -5,6 +5,7 @@
 export default {
   code: "billing_data_archive",
   name: "账单数据归档",
+  formUuid: "FORM_F52E3E6DA4874C5BB8B1E6B2FA41AD3A",
   formType: "receipt",
   fields: [
     {
