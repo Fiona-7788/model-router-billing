@@ -955,36 +955,51 @@ async function archiveBillingData(ctx: any, params: any) {
       }
     }
     
-    // 方式 2: 尝试 ctx.platform 上的其他存储方法
-    if (!saveResult && ctx?.platform) {
-      const platformMethods = Object.keys(ctx.platform).filter(k => 
-        typeof ctx.platform[k] === "function" || 
-        (ctx.platform[k] && typeof ctx.platform[k] === "object")
-      );
-      console.log(`ctx.platform 可用方法:`, platformMethods.join(", "));
+    // 方式 2: 尝试 ctx.dataView 存储
+    if (!saveResult && ctx?.dataView) {
+      const dataViewKeys = Object.keys(ctx.dataView);
+      console.log(`ctx.dataView keys:`, dataViewKeys.join(", "));
       
-      // 尝试 ctx.platform.api 的各种端点
-      if (ctx?.platform?.api?.request) {
-        const endpoints = [
-          { path: "/api/v1/form-data/create", body: { formUuid: ARCHIVE_FORM_UUID, data: formDataObj } },
-          { path: "/api/v1/forms/records", body: { formUuid: ARCHIVE_FORM_UUID, formData: formDataObj } },
-          { path: "/form/record/create", body: { formUuid: ARCHIVE_FORM_UUID, formData: formDataObj } },
-        ];
-        for (const ep of endpoints) {
-          try {
-            console.log(`尝试端点: ${ep.path}`);
-            saveResult = await ctx.platform.api.request({
-              method: "POST",
-              path: ep.path,
-              body: ep.body,
+      try {
+        // 尝试使用 dataView 存储数据
+        // 先检查 dataView 上有哪些方法
+        if (typeof ctx.dataView.createOne === "function") {
+          saveResult = await ctx.dataView.createOne({
+            dataViewCode: "billing_archive",
+            data: formDataObj,
+          });
+          console.log(`ctx.dataView.createOne 成功`);
+        } else if (typeof ctx.dataView.create === "function") {
+          saveResult = await ctx.dataView.create({
+            dataViewCode: "billing_archive",
+            data: formDataObj,
+          });
+          console.log(`ctx.dataView.create 成功`);
+        } else if (typeof ctx.dataView.insert === "function") {
+          saveResult = await ctx.dataView.insert({
+            dataViewCode: "billing_archive",
+            data: formDataObj,
+          });
+          console.log(`ctx.dataView.insert 成功`);
+        } else {
+          console.log(`ctx.dataView 可用方法:`, dataViewKeys.filter(k => typeof ctx.dataView[k] === "function").join(", "));
+          // 尝试调用第一个看起来像创建的方法
+          const createMethod = dataViewKeys.find(k => 
+            typeof ctx.dataView[k] === "function" && 
+            (k.toLowerCase().includes("create") || k.toLowerCase().includes("insert") || k.toLowerCase().includes("add") || k.toLowerCase().includes("save"))
+          );
+          if (createMethod) {
+            console.log(`尝试调用 ctx.dataView.${createMethod}...`);
+            saveResult = await ctx.dataView[createMethod]({
+              dataViewCode: "billing_archive",
+              data: formDataObj,
             });
-            console.log(`端点 ${ep.path} 成功:`, JSON.stringify(saveResult).slice(0, 300));
-            break;
-          } catch (e: any) {
-            console.log(`端点 ${ep.path} 失败: ${e?.message}`);
-            lastError = e;
+            console.log(`ctx.dataView.${createMethod} 成功`);
           }
         }
+      } catch (e: any) {
+        lastError = e;
+        console.log(`ctx.dataView 存储失败: ${e?.message}`);
       }
     }
     
@@ -1013,6 +1028,7 @@ async function archiveBillingData(ctx: any, params: any) {
         platformKeys: ctx?.platform ? Object.keys(ctx.platform).join(", ") : "N/A",
         platformApiKeys: ctx?.platform?.api ? Object.keys(ctx.platform.api).join(", ") : "N/A",
         formKeys: ctx?.form ? Object.keys(ctx.form).join(", ") : "N/A",
+        dataViewKeys: ctx?.dataView ? Object.keys(ctx.dataView).join(", ") : "N/A",
         utilsKeys: ctx?.utils ? Object.keys(ctx.utils).join(", ") : "N/A",
       },
       data: archiveData,
