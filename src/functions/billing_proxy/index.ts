@@ -1171,8 +1171,12 @@ async function queryLocalBillingData(ctx: any, params: any) {
           const result = await ctx.resources.resolveForm({
             formUuid: ARCHIVE_FORM_UUID,
           });
-          const resultStr = JSON.stringify(result).slice(0, 300);
-          console.log(`resources.resolveForm 返回:`, resultStr);
+          
+          // 检查返回对象的类型和属性
+          const resultType = typeof result;
+          const resultKeys = result && typeof result === "object" ? Object.keys(result) : [];
+          const resultProto = result && typeof result === "object" ? Object.getPrototypeOf(result)?.constructor?.name : "N/A";
+          console.log(`resources.resolveForm 返回类型:`, resultType, "keys:", resultKeys, "proto:", resultProto);
           
           // 处理不同的返回格式
           if (Array.isArray(result)) {
@@ -1191,17 +1195,18 @@ async function queryLocalBillingData(ctx: any, params: any) {
             items = result.records;
             queryAttempts.push("resources.resolveForm:OK");
           } else if (typeof result === "object" && result !== null) {
-            // 可能是单个对象或包含 formData 的对象
+            // 检查是否有 formData 属性
             const formData = result.formData || result;
             if (formData.archive_date) {
               items = [result];
               queryAttempts.push("resources.resolveForm:OK(single)");
             } else {
-              queryAttempts.push(`resources.resolveForm:noArray|${resultStr}`);
+              // 尝试调用可能的方法
+              const methods = resultKeys.filter(k => typeof result[k] === "function");
+              queryAttempts.push(`resources.resolveForm:noArray|type:${resultType}|keys:${resultKeys.join(",")}|methods:${methods.join(",")}|proto:${resultProto}`);
             }
           } else {
-            // result 是 null/undefined/string/number 等
-            queryAttempts.push(`resources.resolveForm:noArray|${resultStr}`);
+            queryAttempts.push(`resources.resolveForm:noArray|type:${resultType}|value:${String(result).slice(0, 100)}`);
           }
         } catch (e: any) {
           queryAttempts.push(`resources.resolveForm:${e?.message || 'failed'}`);
