@@ -782,3 +782,101 @@
 - targets: {"forms":[],"pages":[],"functions":["billing_proxy"],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"runtime":false,"other":[]}
 - followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
 - user: fengyujing
+## 2026-08-14T04:49:40.392Z
+
+- command: openxiangda resource publish
+- reason: 调试ctx认证信息并修复归档查询功能
+- targets: {"forms":[],"pages":[],"functions":["billing_proxy"],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-14T04:52:56.446Z
+
+- command: openxiangda resource publish
+- reason: 紧急修复表单查询认证问题
+- targets: {"forms":[],"pages":[],"functions":["billing_proxy"],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-14T04:53:09.457Z
+
+- command: openxiangda resource publish
+- reason: 紧急修复表单查询认证问题
+- targets: {"forms":[],"pages":[],"functions":["billing_proxy"],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-14T04:53:42.884Z
+
+- command: openxiangda resource publish
+- reason: 紧急修复表单查询认证问题
+- targets: {"forms":[],"pages":[],"functions":["billing_proxy"],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-14T04:54:02.400Z
+
+- command: openxiangda resource publish
+- reason: 紧急修复表单查询认证问题
+- targets: {"forms":[],"pages":[],"functions":["billing_proxy"],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-14T04:55:21.669Z
+
+- command: openxiangda resource publish
+- reason: 修复表单查询认证
+- targets: {"forms":[],"pages":[],"functions":["billing_proxy"],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-14T04:55:38.623Z
+
+- command: openxiangda resource publish
+- reason: 需要完整替换 manifest 以更新代码
+- targets: {"forms":[],"pages":[],"functions":["billing_proxy"],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-14T04:56:42.170Z
+
+- command: openxiangda resource publish
+- reason: 更新代码添加调试日志
+- targets: {"forms":[],"pages":[],"functions":["billing_proxy"],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-14T04:57:49.213Z
+
+- command: openxiangda resource publish
+- reason: 使用正确的 createOne/queryMany 方法
+- targets: {"forms":[],"pages":[],"functions":["billing_proxy"],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-14T05:00:50.176Z
+
+- command: openxiangda resource publish
+- reason: 更新代码使用新表单UUID
+- targets: {"forms":[],"pages":[],"functions":["billing_proxy"],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-14T05:01:02.849Z
+
+- command: openxiangda resource publish
+- reason: 更新代码使用新表单UUID
+- targets: {"forms":[],"pages":[],"functions":["billing_proxy"],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-14T05:02:07.998Z
+
+- command: openxiangda resource publish
+- reason: 尝试多种参数格式
+- targets: {"forms":[],"pages":[],"functions":["billing_proxy"],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-14T05:02:20.637Z
+
+- command: openxiangda resource publish
+- reason: 尝试多种参数格式来定位表单数据表未初始化的问题
+- targets: {"forms":[],"pages":[],"functions":["billing_proxy"],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-14T05:05:17.423Z
+
+- command: openxiangda workspace publish
+- reason: 同步归档表单schema以初始化数据表
+- targets: {"forms":["billing_data_archive"],"pages":[],"resources":false,"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing

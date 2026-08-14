@@ -869,18 +869,6 @@ async function archiveBillingData(ctx: any, params: any) {
   const targetDate = params.date;
   if (!targetDate) throw new Error("缺少 date 参数");
   
-  // 调试：输出 ctx.form 和 ctx 上的可用方法
-  const ctxKeys = Object.keys(ctx || {});
-  const formKeys = Object.keys(ctx?.form || {});
-  const formMethods = formKeys.filter(k => typeof (ctx.form as any)[k] === "function");
-  console.log(`ctx 顶层 keys: ${ctxKeys.join(", ")}`);
-  console.log(`ctx.form keys: ${formKeys.join(", ")}`);
-  console.log(`ctx.form 方法: ${formMethods.join(", ")}`);
-  // 也检查 ctx.resources 和 ctx.platform
-  console.log(`ctx.resources keys: ${Object.keys(ctx?.resources || {}).join(", ")}`);
-  console.log(`ctx.platform keys: ${Object.keys(ctx?.platform || {}).join(", ")}`);
-  console.log(`ctx.app keys: ${Object.keys(ctx?.app || {}).join(", ")}`);
-  
   // 获取该日期的完整 breakdown 数据
   const [y, m, d] = targetDate.split("-").map(Number);
   const beijingOffset = 8 * 3600;
@@ -927,37 +915,17 @@ async function archiveBillingData(ctx: any, params: any) {
     
     // 使用 ctx.form.createOne (平台内置表单 API)
     if (ctx?.form && typeof ctx.form.createOne === "function") {
-      // 尝试多种参数格式
       const formDataObj = {
         archive_date: startTime * 1000,
         data_json: JSON.stringify(archiveData),
         record_count: normalizedRows.length,
         archive_type: params.archiveType || "daily",
       };
-      
-      try {
-        // 格式 1: 直接传 formData 对象
-        saveResult = await ctx.form.createOne({
-          formUuid: ARCHIVE_FORM_UUID,
-          formData: formDataObj,
-        });
-        console.log(`ctx.form.createOne 格式1 成功`);
-      } catch (e1: any) {
-        console.log(`格式1 失败: ${e1?.message}`);
-        try {
-          // 格式 2: 传 formDataJson 字符串
-          saveResult = await ctx.form.createOne({
-            formUuid: ARCHIVE_FORM_UUID,
-            formDataJson: JSON.stringify(formDataObj),
-          });
-          console.log(`ctx.form.createOne 格式2 成功`);
-        } catch (e2: any) {
-          console.log(`格式2 失败: ${e2?.message}`);
-          // 格式 3: 直接传 flat 对象
-          saveResult = await ctx.form.createOne(formDataObj);
-          console.log(`ctx.form.createOne 格式3 成功`);
-        }
-      }
+      saveResult = await ctx.form.createOne({
+        formUuid: ARCHIVE_FORM_UUID,
+        formData: formDataObj,
+      });
+      console.log(`ctx.form.createOne 成功`);
     } else {
       throw new Error("ctx.form.createOne 不可用");
     }
@@ -1012,7 +980,6 @@ async function queryLocalBillingData(ctx: any, params: any) {
       throw new Error("ctx.form.queryMany 不可用");
     }
     
-    console.log(`ctx.form 方法: ${Object.keys(ctx?.form || {}).filter(k => typeof (ctx.form as any)[k] === 'function').join(', ')}`);
     console.log(`搜索到 ${Array.isArray(items) ? items.length : 0} 条归档记录`);
     
     // 在返回的结果中按日期过滤
