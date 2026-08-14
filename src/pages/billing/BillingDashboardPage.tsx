@@ -483,7 +483,10 @@ export function BillingDashboardPage() {
                     if (result?.success) {
                       alert(`归档完成！\n日期: ${result?.date}\n记录数: ${result?.recordCount}\n成功: ${result?.success}`);
                     } else {
-                      alert(`归档失败！\n日期: ${result?.date}\n记录数: ${result?.recordCount}\n错误: ${result?.error || "未知错误"}`);
+                      const debugInfo = result?.debug
+                        ? `\n\n--- 调试信息 ---\nctx: ${result.debug.ctxKeys}\nplatform: ${result.debug.platformKeys}\nplatform.api: ${result.debug.platformApiKeys}\nform: ${result.debug.formKeys}\nutils: ${result.debug.utilsKeys}`
+                        : "";
+                      alert(`归档失败！\n日期: ${result?.date}\n记录数: ${result?.recordCount}\n错误: ${result?.error || "未知错误"}${debugInfo}`);
                     }
                   } catch (error: any) {
                     console.error("归档失败:", error);

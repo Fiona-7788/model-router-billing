@@ -1008,6 +1008,13 @@ async function archiveBillingData(ctx: any, params: any) {
       date: targetDate,
       recordCount: normalizedRows.length,
       error: error?.message || "存储失败",
+      debug: {
+        ctxKeys: Object.keys(ctx || {}).join(", "),
+        platformKeys: ctx?.platform ? Object.keys(ctx.platform).join(", ") : "N/A",
+        platformApiKeys: ctx?.platform?.api ? Object.keys(ctx.platform.api).join(", ") : "N/A",
+        formKeys: ctx?.form ? Object.keys(ctx.form).join(", ") : "N/A",
+        utilsKeys: ctx?.utils ? Object.keys(ctx.utils).join(", ") : "N/A",
+      },
       data: archiveData,
     };
   }
