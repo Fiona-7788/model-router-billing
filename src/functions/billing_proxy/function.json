@@ -5,8 +5,9 @@
   "sourceFile": "src/functions/billing_proxy/index.ts",
   "definitionJson": {
     "kind": "app_function",
-    "version": "function_v1",
+    "version": "function_v2",
     "runtimeMode": "trusted_node",
+    "runtimeContractVersion": "trusted_node_v2",
     "sourceType": "inline",
     "runtimeInvoke": {
       "audience": {
@@ -14,6 +15,16 @@
       }
     }
   },
+  "secretRefs": [
+    {
+      "name": "ALIYUN_ACCESS_KEY_ID",
+      "required": true
+    },
+    {
+      "name": "ALIYUN_ACCESS_KEY_SECRET",
+      "required": true
+    }
+  ],
   "enabled": true,
   "published": true
 }
