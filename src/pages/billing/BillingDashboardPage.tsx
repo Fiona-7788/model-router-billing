@@ -105,46 +105,46 @@ function aggregateTrendData(
 ): CostTrendPoint[] {
   if (granularity === "daily") return data;
 
-  const aggMap = new Map<string, { label: string; company: string; cost: number; sortKey: number }>();
+  const aggMap = new Map<string, { periodKey: string; company: string; cost: number }>();
 
   for (const point of data) {
-    // point.date 格式 "MM-DD"，需要还原为完整日期才能正确分组
-    // 从原始数据推断年份（使用当前年份）
     const year = dayjs().year();
     const fullDate = dayjs(`${year}-${point.date}`, "YYYY-MM-DD");
     if (!fullDate.isValid()) continue;
 
-    let periodKey: string;
-    let periodLabel: string;
-    let sortKey: number;
+    // periodKey 是可排序的字符串，同时作为 chart 的 x 轴值
+    const periodKey = granularity === "weekly"
+      ? fullDate.startOf("week").format("YYYY-MM-DD")   // 周一日期
+      : fullDate.format("YYYY-MM");                      // 年月
 
-    if (granularity === "weekly") {
-      // ISO 周：取周一作为 key
-      const weekStart = fullDate.startOf("week");
-      periodKey = `${point.company}|${weekStart.format("YYYY-MM-DD")}`;
-      periodLabel = `${weekStart.format("MM/DD")}周`;
-      sortKey = weekStart.valueOf();
-    } else {
-      // 月度
-      const monthStart = fullDate.startOf("month");
-      periodKey = `${point.company}|${monthStart.format("YYYY-MM")}`;
-      periodLabel = monthStart.format("YYYY-MM");
-      sortKey = monthStart.valueOf();
-    }
-
-    const existing = aggMap.get(periodKey);
+    const mapKey = `${point.company}|${periodKey}`;
+    const existing = aggMap.get(mapKey);
     if (existing) {
       existing.cost += point.cost;
     } else {
-      aggMap.set(periodKey, { label: periodLabel, company: point.company, cost: point.cost, sortKey });
+      aggMap.set(mapKey, { periodKey, company: point.company, cost: point.cost });
     }
   }
 
   return Array.from(aggMap.values()).map((v) => ({
-    date: v.label,
+    date: v.periodKey,  // 可排序的 key 作为 date
     company: v.company,
     cost: v.cost,
   }));
+}
+
+/** 将聚合 key 格式化为显示标签 */
+function formatPeriodLabel(dateStr: string, granularity: Granularity): string {
+  if (granularity === "weekly") {
+    // "2026-08-11" → "08/11周"
+    const d = dayjs(dateStr);
+    return d.isValid() ? `${d.format("MM/DD")}周` : dateStr;
+  }
+  if (granularity === "monthly") {
+    // "2026-08" → "2026-08"
+    return dateStr;
+  }
+  return dateStr;
 }
 
 /* ------------------------------------------------------------------ */
@@ -156,8 +156,11 @@ function CostBarChart({ data, granularity }: { data: CostTrendPoint[]; granulari
 
   const option = useMemo(() => {
     const dateSet = new Set(aggregated.map((d) => d.date));
-    const dates = Array.from(dateSet);
+    const dates = Array.from(dateSet).sort();
     const companyNames = Array.from(new Set(aggregated.map((d) => d.company)));
+
+    // 将排序后的日期 key 转换为显示标签
+    const displayLabels = dates.map((d) => formatPeriodLabel(d, granularity));
 
     const series = companyNames.map((name) => ({
       name,
@@ -175,8 +178,9 @@ function CostBarChart({ data, granularity }: { data: CostTrendPoint[]; granulari
       tooltip: {
         trigger: "axis" as const,
         axisPointer: { type: "shadow" as const },
-        formatter: (params: Array<{ seriesName: string; value: number; marker: string; axisValue?: string }>) => {
-          const label = params[0]?.axisValue || "";
+        formatter: (params: Array<{ seriesName: string; value: number; marker: string; axisValue?: string; dataIndex?: number }>) => {
+          const idx = params[0]?.dataIndex ?? 0;
+          const label = displayLabels[idx] || params[0]?.axisValue || "";
           let html = `<b>${label}</b><br/>`;
           let total = 0;
           for (const p of params) {
@@ -203,7 +207,7 @@ function CostBarChart({ data, granularity }: { data: CostTrendPoint[]; granulari
       },
       xAxis: {
         type: "category" as const,
-        data: dates,
+        data: displayLabels,
         axisLabel: { fontSize: 11, color: "#64748b" },
         axisLine: { lineStyle: { color: "#e2e8f0" } },
       },
@@ -218,7 +222,7 @@ function CostBarChart({ data, granularity }: { data: CostTrendPoint[]; granulari
       },
       series,
     };
-  }, [aggregated]);
+  }, [aggregated, granularity]);
 
   return (
     <ReactEChartsCore
@@ -369,7 +373,6 @@ export function BillingDashboardPage() {
         {/* ── 顶部控制栏：聚合方式 + 筛选 ── */}
         <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-slate-600">聚合方式</span>
             <Segmented
               value={granularity}
               onChange={(v) => setGranularity(v as Granularity)}
