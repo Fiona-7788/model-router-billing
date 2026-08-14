@@ -1057,11 +1057,17 @@ async function archiveBillingData(ctx: any, params: any) {
     
     console.log(`归档保存响应:`, JSON.stringify(saveResult).slice(0, 500));
     console.log(`归档 ${targetDate} 成功: ${normalizedRows.length} 条记录`);
+    
+    // 确定使用的存储方式
+    const lastAttempt = attempts[attempts.length - 1] || "unknown";
+    const storageMethod = lastAttempt.includes(":OK") ? lastAttempt.split(":")[0] : "unknown";
+    
     return {
       success: true,
       date: targetDate,
       recordCount: normalizedRows.length,
       formInstId: saveResult?.formInstId || saveResult?.data?.formInstId || saveResult?.result?.formInstId || null,
+      storageMethod: storageMethod,
     };
   } catch (error: any) {
     console.error(`归档 ${targetDate} 失败:`, error?.message);
@@ -1088,7 +1094,7 @@ async function archiveBillingData(ctx: any, params: any) {
 
 /**
  * 查询本地归档的账单数据
- * 先检查表单中是否有指定日期的归档数据
+ * 尝试多种方式查询：form -> dataView -> resources -> platform.api
  */
 async function queryLocalBillingData(ctx: any, params: any) {
   const targetDate = params.date;
@@ -1099,20 +1105,110 @@ async function queryLocalBillingData(ctx: any, params: any) {
   const dayStart = Date.UTC(y, m - 1, d) / 1000 - beijingOffset;
   const dayEnd = dayStart + 86400;
   
+  const queryAttempts: string[] = [];
+  
   try {
     let items: any[] = [];
     
-    // 使用 ctx.form.queryMany (平台内置表单 API)
+    // 方式 1: ctx.form.queryMany
     if (ctx?.form && typeof ctx.form.queryMany === "function") {
-      const searchResult = await ctx.form.queryMany({
-        formUuid: ARCHIVE_FORM_UUID,
-        currentPage: 1,
-        pageSize: 100,
-      });
-      items = searchResult?.data || searchResult?.resultList || searchResult || [];
-      console.log(`ctx.form.queryMany 返回: ${Array.isArray(items) ? items.length : JSON.stringify(searchResult).slice(0, 200)}`);
-    } else {
-      throw new Error("ctx.form.queryMany 不可用");
+      try {
+        queryAttempts.push("form.queryMany");
+        const searchResult = await ctx.form.queryMany({
+          formUuid: ARCHIVE_FORM_UUID,
+          currentPage: 1,
+          pageSize: 100,
+        });
+        items = searchResult?.data || searchResult?.resultList || searchResult || [];
+        if (Array.isArray(items) && items.length > 0) {
+          queryAttempts.push("form.queryMany:OK");
+          console.log(`ctx.form.queryMany 返回: ${items.length} 条`);
+        } else {
+          queryAttempts.push(`form.queryMany:empty`);
+        }
+      } catch (e: any) {
+        queryAttempts.push(`form.queryMany:${e?.message || 'failed'}`);
+        console.log(`ctx.form.queryMany 失败: ${e?.message}`);
+      }
+    }
+    
+    // 方式 2: ctx.dataView 查询
+    if ((!items || items.length === 0) && ctx?.dataView) {
+      const dvMethods = Object.keys(ctx.dataView).filter(k => typeof ctx.dataView[k] === "function");
+      for (const method of dvMethods) {
+        if (items && items.length > 0) break;
+        try {
+          queryAttempts.push(`dataView.${method}`);
+          const result = await ctx.dataView[method]({
+            dataViewCode: "billing_archive",
+          });
+          if (Array.isArray(result)) {
+            items = result;
+            queryAttempts.push(`dataView.${method}:OK`);
+          } else if (result?.data && Array.isArray(result.data)) {
+            items = result.data;
+            queryAttempts.push(`dataView.${method}:OK`);
+          } else if (result?.resultList && Array.isArray(result.resultList)) {
+            items = result.resultList;
+            queryAttempts.push(`dataView.${method}:OK`);
+          } else {
+            queryAttempts.push(`dataView.${method}:noArray`);
+          }
+        } catch (e: any) {
+          queryAttempts.push(`dataView.${method}:${e?.message || 'failed'}`);
+        }
+      }
+    }
+    
+    // 方式 3: ctx.resources 查询
+    if ((!items || items.length === 0) && ctx?.resources) {
+      const resMethods = Object.keys(ctx.resources).filter(k => typeof ctx.resources[k] === "function");
+      for (const method of resMethods) {
+        if (items && items.length > 0) break;
+        try {
+          queryAttempts.push(`resources.${method}`);
+          const result = await ctx.resources[method]({
+            resourceType: "billing_archive",
+          });
+          if (Array.isArray(result)) {
+            items = result;
+            queryAttempts.push(`resources.${method}:OK`);
+          } else if (result?.data && Array.isArray(result.data)) {
+            items = result.data;
+            queryAttempts.push(`resources.${method}:OK`);
+          }
+        } catch (e: any) {
+          queryAttempts.push(`resources.${method}:${e?.message || 'failed'}`);
+        }
+      }
+    }
+    
+    // 方式 4: ctx.platform.api 查询
+    if ((!items || items.length === 0) && ctx?.platform?.api) {
+      const queryEndpoints = [
+        { method: "GET" as const, path: `/api/v1/form-data?formUuid=${ARCHIVE_FORM_UUID}` },
+        { method: "GET" as const, path: `/forms/${ARCHIVE_FORM_UUID}/data` },
+        { method: "POST" as const, path: `/api/form-data/query`, body: { formUuid: ARCHIVE_FORM_UUID, pageSize: 100 } },
+      ];
+      for (const ep of queryEndpoints) {
+        if (items && items.length > 0) break;
+        try {
+          queryAttempts.push(`api:${ep.path}`);
+          const result = await ctx.platform.api.request(ep);
+          if (Array.isArray(result)) {
+            items = result;
+            queryAttempts.push(`api:${ep.path}:OK`);
+          } else if (result?.data && Array.isArray(result.data)) {
+            items = result.data;
+            queryAttempts.push(`api:${ep.path}:OK`);
+          } else if (result?.resultList && Array.isArray(result.resultList)) {
+            items = result.resultList;
+            queryAttempts.push(`api:${ep.path}:OK`);
+          }
+        } catch (e: any) {
+          queryAttempts.push(`api:${ep.path}:${e?.message || 'failed'}`);
+        }
+      }
     }
     
     console.log(`搜索到 ${Array.isArray(items) ? items.length : 0} 条归档记录`);
@@ -1124,7 +1220,6 @@ async function queryLocalBillingData(ctx: any, params: any) {
         : item.formData || item;
       const archiveDate = formData.archive_date;
       if (!archiveDate) return false;
-      // archive_date 是毫秒时间戳
       const ts = typeof archiveDate === "number" ? archiveDate : new Date(archiveDate).getTime();
       return ts >= dayStart * 1000 && ts < dayEnd * 1000;
     }) : [];
@@ -1151,10 +1246,20 @@ async function queryLocalBillingData(ctx: any, params: any) {
     }
     
     console.log(`未找到 ${targetDate} 的归档数据 (总共 ${Array.isArray(items) ? items.length : 0} 条记录)`);
-    return { found: false, date: targetDate, totalArchives: Array.isArray(items) ? items.length : 0 };
+    return { 
+      found: false, 
+      date: targetDate, 
+      totalArchives: Array.isArray(items) ? items.length : 0,
+      queryAttempts: queryAttempts.join(" | "),
+    };
   } catch (error: any) {
     console.error(`查询归档数据失败:`, error?.message, error?.response?.data || '');
-    return { found: false, date: targetDate, error: error?.message };
+    return { 
+      found: false, 
+      date: targetDate, 
+      error: error?.message,
+      queryAttempts: queryAttempts.join(" | "),
+    };
   }
 }
 

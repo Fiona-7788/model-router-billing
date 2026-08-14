@@ -481,7 +481,8 @@ export function BillingDashboardPage() {
                     const result = await billingApi.archiveBillingData({ date: dayjs().format("YYYY-MM-DD") });
                     console.log("归档结果:", result);
                     if (result?.success) {
-                      alert(`归档完成！\n日期: ${result?.date}\n记录数: ${result?.recordCount}\n成功: ${result?.success}`);
+                      const data = result?.data || result;
+                      alert(`归档完成！\n日期: ${data?.date || result?.date}\n记录数: ${data?.recordCount || result?.recordCount}\n存储方式: ${data?.storageMethod || 'N/A'}`);
                     } else {
                       const debugInfo = result?.debug
                         ? `\n\n--- 调试信息 ---\nctx: ${result.debug.ctxKeys}\nplatform: ${result.debug.platformKeys}\nplatform.api: ${result.debug.platformApiKeys}\nform: ${result.debug.formKeys}\ndataView: ${result.debug.dataViewKeys}\nresources: ${result.debug.resourcesKeys || 'N/A'}\nutils: ${result.debug.utilsKeys}\n\n尝试记录:\n${result.debug.attempts || 'N/A'}`
@@ -502,9 +503,12 @@ export function BillingDashboardPage() {
                     const result = await billingApi.queryLocalBillingData({ date: dayjs().format("YYYY-MM-DD") });
                     console.log("查询结果:", result);
                     if (result?.found) {
-                      alert(`查询成功！\n日期: ${result?.date}\n记录数: ${result?.recordCount}\n归档时间: ${result?.archivedAt || 'N/A'}\n数据行数: ${result?.rows?.length || 0}`);
+                      const data = result?.data || result;
+                      alert(`查询成功！\n日期: ${data?.date || result?.date}\n记录数: ${data?.recordCount || result?.recordCount}\n归档时间: ${data?.archivedAt || 'N/A'}\n数据行数: ${data?.rows?.length || 0}`);
                     } else {
-                      alert(`未找到归档数据！\n日期: ${result?.date}\n错误: ${result?.error || '无数据'}\n总归档数: ${result?.totalArchives || 0}`);
+                      const data = result?.data || result;
+                      const attemptsInfo = data?.queryAttempts ? `\n查询尝试: ${data.queryAttempts}` : '';
+                      alert(`未找到归档数据！\n日期: ${data?.date || result?.date}\n错误: ${data?.error || '无数据'}\n总归档数: ${data?.totalArchives || 0}${attemptsInfo}`);
                     }
                   } catch (error: any) {
                     console.error("查询失败:", error);
