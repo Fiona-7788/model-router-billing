@@ -917,20 +917,8 @@ async function archiveBillingData(ctx: any, params: any) {
     archivedAt: new Date().toISOString(),
   };
   
+  const attempts: string[] = [];
   try {
-    // 先调试 ctx 上有哪些可用的存储 API
-    const ctxKeys = Object.keys(ctx || {});
-    console.log(`ctx keys:`, ctxKeys.join(", "));
-    if (ctx?.platform) {
-      console.log(`ctx.platform keys:`, Object.keys(ctx.platform).join(", "));
-    }
-    if (ctx?.platform?.api) {
-      console.log(`ctx.platform.api keys:`, Object.keys(ctx.platform.api).join(", "));
-    }
-    if (ctx?.form) {
-      console.log(`ctx.form keys:`, Object.keys(ctx.form).join(", "));
-    }
-    
     let saveResult: any = null;
     const formDataObj = {
       archive_date: startTime * 1000,
@@ -941,65 +929,125 @@ async function archiveBillingData(ctx: any, params: any) {
     
     let lastError: any = null;
     
-    // 方式 1: ctx.form.createOne
+    // 方式 1: 尝试通过 platform.api 同步表单 schema（初始化数据表）
+    if (ctx?.platform?.api) {
+      const syncEndpoints = [
+        { method: "POST" as const, path: `/forms/${ARCHIVE_FORM_UUID}/schema/sync`, body: {} },
+        { method: "POST" as const, path: `/api/v1/forms/${ARCHIVE_FORM_UUID}/sync-schema`, body: {} },
+        { method: "POST" as const, path: `/form/${ARCHIVE_FORM_UUID}/init-table`, body: {} },
+        { method: "POST" as const, path: `/api/form-schema/sync`, body: { formUuid: ARCHIVE_FORM_UUID } },
+      ];
+      for (const ep of syncEndpoints) {
+        try {
+          attempts.push(`sync:${ep.path}`);
+          const syncResult = await ctx.platform.api.request(ep);
+          attempts.push(`sync:${ep.path}:OK`);
+          console.log(`Schema sync via ${ep.path} success:`, JSON.stringify(syncResult).slice(0, 200));
+          break;
+        } catch (e: any) {
+          attempts.push(`sync:${ep.path}:${e?.message || 'failed'}`);
+          console.log(`Schema sync via ${ep.path} failed: ${e?.message}`);
+        }
+      }
+    }
+    
+    // 方式 2: ctx.form.createOne
     if (ctx?.form && typeof ctx.form.createOne === "function") {
       try {
+        attempts.push("form.createOne");
         saveResult = await ctx.form.createOne({
           formUuid: ARCHIVE_FORM_UUID,
           formData: formDataObj,
         });
+        attempts.push("form.createOne:OK");
         console.log(`ctx.form.createOne 成功`);
       } catch (e: any) {
         lastError = e;
+        attempts.push(`form.createOne:${e?.message || 'failed'}`);
         console.log(`ctx.form.createOne 失败: ${e?.message}`);
       }
     }
     
-    // 方式 2: 尝试 ctx.dataView 存储
+    // 方式 3: ctx.dataView 存储
     if (!saveResult && ctx?.dataView) {
       const dataViewKeys = Object.keys(ctx.dataView);
-      console.log(`ctx.dataView keys:`, dataViewKeys.join(", "));
+      const dvMethods = dataViewKeys.filter(k => typeof ctx.dataView[k] === "function");
+      attempts.push(`dataView methods: ${dvMethods.join(", ")}`);
       
-      try {
-        // 尝试使用 dataView 存储数据
-        // 先检查 dataView 上有哪些方法
-        if (typeof ctx.dataView.createOne === "function") {
-          saveResult = await ctx.dataView.createOne({
+      // 尝试所有看起来像创建的方法
+      for (const method of dvMethods) {
+        if (saveResult) break;
+        try {
+          attempts.push(`dataView.${method}`);
+          saveResult = await ctx.dataView[method]({
             dataViewCode: "billing_archive",
             data: formDataObj,
           });
-          console.log(`ctx.dataView.createOne 成功`);
-        } else if (typeof ctx.dataView.create === "function") {
-          saveResult = await ctx.dataView.create({
-            dataViewCode: "billing_archive",
-            data: formDataObj,
-          });
-          console.log(`ctx.dataView.create 成功`);
-        } else if (typeof ctx.dataView.insert === "function") {
-          saveResult = await ctx.dataView.insert({
-            dataViewCode: "billing_archive",
-            data: formDataObj,
-          });
-          console.log(`ctx.dataView.insert 成功`);
-        } else {
-          console.log(`ctx.dataView 可用方法:`, dataViewKeys.filter(k => typeof ctx.dataView[k] === "function").join(", "));
-          // 尝试调用第一个看起来像创建的方法
-          const createMethod = dataViewKeys.find(k => 
-            typeof ctx.dataView[k] === "function" && 
-            (k.toLowerCase().includes("create") || k.toLowerCase().includes("insert") || k.toLowerCase().includes("add") || k.toLowerCase().includes("save"))
-          );
-          if (createMethod) {
-            console.log(`尝试调用 ctx.dataView.${createMethod}...`);
-            saveResult = await ctx.dataView[createMethod]({
-              dataViewCode: "billing_archive",
-              data: formDataObj,
-            });
-            console.log(`ctx.dataView.${createMethod} 成功`);
+          attempts.push(`dataView.${method}:OK`);
+          console.log(`ctx.dataView.${method} 成功`);
+        } catch (e: any) {
+          attempts.push(`dataView.${method}:${e?.message || 'failed'}`);
+          console.log(`ctx.dataView.${method} 失败: ${e?.message}`);
+        }
+      }
+      
+      // 如果上面的方法都失败了，尝试不传 dataViewCode
+      if (!saveResult) {
+        for (const method of dvMethods) {
+          if (saveResult) break;
+          try {
+            attempts.push(`dataView.${method}(noCode)`);
+            saveResult = await ctx.dataView[method](formDataObj);
+            attempts.push(`dataView.${method}(noCode):OK`);
+            console.log(`ctx.dataView.${method}(noCode) 成功`);
+          } catch (e: any) {
+            attempts.push(`dataView.${method}(noCode):${e?.message || 'failed'}`);
           }
         }
-      } catch (e: any) {
-        lastError = e;
-        console.log(`ctx.dataView 存储失败: ${e?.message}`);
+      }
+    }
+    
+    // 方式 4: ctx.resources 存储
+    if (!saveResult && ctx?.resources) {
+      const resKeys = Object.keys(ctx.resources);
+      const resMethods = resKeys.filter(k => typeof ctx.resources[k] === "function");
+      attempts.push(`resources methods: ${resMethods.join(", ")}`);
+      
+      for (const method of resMethods) {
+        if (saveResult) break;
+        try {
+          attempts.push(`resources.${method}`);
+          saveResult = await ctx.resources[method]({
+            resourceType: "billing_archive",
+            data: formDataObj,
+          });
+          attempts.push(`resources.${method}:OK`);
+          console.log(`ctx.resources.${method} 成功`);
+        } catch (e: any) {
+          attempts.push(`resources.${method}:${e?.message || 'failed'}`);
+        }
+      }
+    }
+    
+    // 方式 5: ctx.platform.api 直接写入
+    if (!saveResult && ctx?.platform?.api) {
+      const writeEndpoints = [
+        { method: "POST" as const, path: `/api/v1/form-data`, body: { formUuid: ARCHIVE_FORM_UUID, formData: formDataObj } },
+        { method: "POST" as const, path: `/forms/${ARCHIVE_FORM_UUID}/data`, body: formDataObj },
+        { method: "POST" as const, path: `/form-data`, body: { formUuid: ARCHIVE_FORM_UUID, data: formDataObj } },
+        { method: "POST" as const, path: `/api/form/instance/create`, body: { formUuid: ARCHIVE_FORM_UUID, formData: formDataObj } },
+      ];
+      for (const ep of writeEndpoints) {
+        if (saveResult) break;
+        try {
+          attempts.push(`api:${ep.path}`);
+          saveResult = await ctx.platform.api.request(ep);
+          attempts.push(`api:${ep.path}:OK`);
+          console.log(`API write via ${ep.path} success`);
+        } catch (e: any) {
+          attempts.push(`api:${ep.path}:${e?.message || 'failed'}`);
+          console.log(`API write via ${ep.path} failed: ${e?.message}`);
+        }
       }
     }
     
@@ -1029,7 +1077,9 @@ async function archiveBillingData(ctx: any, params: any) {
         platformApiKeys: ctx?.platform?.api ? Object.keys(ctx.platform.api).join(", ") : "N/A",
         formKeys: ctx?.form ? Object.keys(ctx.form).join(", ") : "N/A",
         dataViewKeys: ctx?.dataView ? Object.keys(ctx.dataView).join(", ") : "N/A",
+        resourcesKeys: ctx?.resources ? Object.keys(ctx.resources).join(", ") : "N/A",
         utilsKeys: ctx?.utils ? Object.keys(ctx.utils).join(", ") : "N/A",
+        attempts: attempts.join(" | "),
       },
       data: archiveData,
     };
