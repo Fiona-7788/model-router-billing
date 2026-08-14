@@ -1,0 +1,31 @@
+{
+  "code": "billing_archive",
+  "name": "账单数据归档",
+  "description": "存储每日账单归档数据",
+  "fields": [
+    {
+      "fieldId": "archive_date",
+      "fieldName": "归档日期",
+      "fieldType": "DATE",
+      "required": true
+    },
+    {
+      "fieldId": "data_json",
+      "fieldName": "归档数据",
+      "fieldType": "TEXT",
+      "required": true
+    },
+    {
+      "fieldId": "record_count",
+      "fieldName": "记录数",
+      "fieldType": "NUMBER",
+      "required": false
+    },
+    {
+      "fieldId": "archive_type",
+      "fieldName": "归档类型",
+      "fieldType": "STRING",
+      "required": true
+    }
+  ]
+}

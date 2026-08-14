@@ -943,32 +943,38 @@ async function archiveBillingData(ctx: any, params: any) {
       }
     }
     
-    // 方式 2: ctx.platform.api 直接调用（使用不同端点格式）
+    // 方式 2: ctx.platform.api 调用平台表单 API
     if (!saveResult && ctx?.platform?.api) {
       try {
-        console.log(`尝试通过 ctx.platform.api 保存（方式 A）...`);
-        // 尝试端点格式 1
+        console.log(`尝试通过 ctx.platform.api 创建表单记录...`);
+        // 使用平台标准的表单数据创建端点
         saveResult = await ctx.platform.api.request({
           method: "POST",
-          path: `/forms/${ARCHIVE_FORM_UUID}/records`,
-          body: { data: formDataObj },
+          path: "/api/form-data/create",
+          body: {
+            formUuid: ARCHIVE_FORM_UUID,
+            formData: formDataObj,
+          },
         });
-        console.log(`ctx.platform.api 方式 A 成功:`, JSON.stringify(saveResult).slice(0, 300));
+        console.log(`ctx.platform.api 创建成功:`, JSON.stringify(saveResult).slice(0, 300));
       } catch (e: any) {
-        console.log(`ctx.platform.api 方式 A 失败: ${e?.message}`);
+        lastError = e;
+        console.log(`ctx.platform.api 创建失败: ${e?.message}`);
         
+        // 尝试另一个端点格式
         try {
-          console.log(`尝试通过 ctx.platform.api 保存（方式 B）...`);
-          // 尝试端点格式 2
+          console.log(`尝试备用端点...`);
           saveResult = await ctx.platform.api.request({
             method: "POST",
-            path: `/form-data/${ARCHIVE_FORM_UUID}`,
-            body: formDataObj,
+            path: "/api/v1/form-instances",
+            body: {
+              formUuid: ARCHIVE_FORM_UUID,
+              data: formDataObj,
+            },
           });
-          console.log(`ctx.platform.api 方式 B 成功:`, JSON.stringify(saveResult).slice(0, 300));
+          console.log(`备用端点成功:`, JSON.stringify(saveResult).slice(0, 300));
         } catch (e2: any) {
-          lastError = e2;
-          console.log(`ctx.platform.api 方式 B 失败: ${e2?.message}`);
+          console.log(`备用端点也失败: ${e2?.message}`);
         }
       }
     }
