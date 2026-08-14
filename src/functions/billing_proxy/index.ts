@@ -927,11 +927,37 @@ async function archiveBillingData(ctx: any, params: any) {
     
     // 使用 ctx.form.createOne (平台内置表单 API)
     if (ctx?.form && typeof ctx.form.createOne === "function") {
-      saveResult = await ctx.form.createOne({
-        formUuid: ARCHIVE_FORM_UUID,
-        formDataJson,
-      });
-      console.log(`ctx.form.createOne 成功`);
+      // 尝试多种参数格式
+      const formDataObj = {
+        archive_date: startTime * 1000,
+        data_json: JSON.stringify(archiveData),
+        record_count: normalizedRows.length,
+        archive_type: params.archiveType || "daily",
+      };
+      
+      try {
+        // 格式 1: 直接传 formData 对象
+        saveResult = await ctx.form.createOne({
+          formUuid: ARCHIVE_FORM_UUID,
+          formData: formDataObj,
+        });
+        console.log(`ctx.form.createOne 格式1 成功`);
+      } catch (e1: any) {
+        console.log(`格式1 失败: ${e1?.message}`);
+        try {
+          // 格式 2: 传 formDataJson 字符串
+          saveResult = await ctx.form.createOne({
+            formUuid: ARCHIVE_FORM_UUID,
+            formDataJson: JSON.stringify(formDataObj),
+          });
+          console.log(`ctx.form.createOne 格式2 成功`);
+        } catch (e2: any) {
+          console.log(`格式2 失败: ${e2?.message}`);
+          // 格式 3: 直接传 flat 对象
+          saveResult = await ctx.form.createOne(formDataObj);
+          console.log(`ctx.form.createOne 格式3 成功`);
+        }
+      }
     } else {
       throw new Error("ctx.form.createOne 不可用");
     }
