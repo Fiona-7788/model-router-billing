@@ -971,26 +971,37 @@ async function queryLocalBillingData(ctx: any, params: any) {
   const dayEnd = dayStart + 86400;
   
   const searchUrl = `${platformUrl}/service/${appType}/v1/form/advancedSearch.json`;
+  
+  // 尝试简单搜索：只按 formUuid 搜索，不按字段过滤
   const searchParams = new URLSearchParams({
     formUuid: ARCHIVE_FORM_UUID,
-    searchFieldJson: JSON.stringify({
-      archive_date: { "gte": dayStart * 1000, "lt": dayEnd * 1000 },
-      archive_type: params.archiveType || "daily",
-    }),
     currentPage: "1",
-    pageSize: "10",
+    pageSize: "50",
   });
   
   try {
+    console.log(`搜索归档数据: ${searchUrl}?${searchParams.toString()}`);
     const response = await httpClient.get(`${searchUrl}?${searchParams.toString()}`, {
       headers: { "Content-Type": "application/json" },
     });
     const data = response?.data ?? response;
-    const items = data?.data || [];
+    console.log(`搜索响应:`, JSON.stringify(data).slice(0, 500));
+    const items = data?.data || data?.resultList || [];
     
-    if (items.length > 0) {
-      // 找到归档数据，解析并返回
-      const firstItem = items[0];
+    // 在返回的结果中按日期过滤
+    const matchedItems = Array.isArray(items) ? items.filter((item: any) => {
+      const formData = typeof item.formData === "string" 
+        ? JSON.parse(item.formData) 
+        : item.formData || item;
+      const archiveDate = formData.archive_date;
+      if (!archiveDate) return false;
+      // archive_date 是毫秒时间戳
+      const ts = typeof archiveDate === "number" ? archiveDate : new Date(archiveDate).getTime();
+      return ts >= dayStart * 1000 && ts < dayEnd * 1000;
+    }) : [];
+    
+    if (matchedItems.length > 0) {
+      const firstItem = matchedItems[0];
       const formData = typeof firstItem.formData === "string" 
         ? JSON.parse(firstItem.formData) 
         : firstItem.formData || firstItem;
@@ -1010,10 +1021,10 @@ async function queryLocalBillingData(ctx: any, params: any) {
       }
     }
     
-    console.log(`未找到 ${targetDate} 的归档数据`);
-    return { found: false, date: targetDate };
+    console.log(`未找到 ${targetDate} 的归档数据 (总共 ${Array.isArray(items) ? items.length : 0} 条记录)`);
+    return { found: false, date: targetDate, totalArchives: Array.isArray(items) ? items.length : 0 };
   } catch (error: any) {
-    console.error(`查询归档数据失败:`, error?.message);
+    console.error(`查询归档数据失败:`, error?.message, error?.response?.data || '');
     return { found: false, date: targetDate, error: error?.message };
   }
 }
