@@ -919,50 +919,62 @@ async function archiveBillingData(ctx: any, params: any) {
   
   try {
     let saveResult: any = null;
+    const formDataObj = {
+      archive_date: startTime * 1000,
+      data_json: JSON.stringify(archiveData),
+      record_count: normalizedRows.length,
+      archive_type: params.archiveType || "daily",
+    };
     
-    // 尝试使用 ctx.form.createOne (平台内置表单 API)
+    // 尝试多种方式保存数据
+    let lastError: any = null;
+    
+    // 方式 1: ctx.form.createOne
     if (ctx?.form && typeof ctx.form.createOne === "function") {
-      const formDataObj = {
-        archive_date: startTime * 1000,
-        data_json: JSON.stringify(archiveData),
-        record_count: normalizedRows.length,
-        archive_type: params.archiveType || "daily",
-      };
       try {
         saveResult = await ctx.form.createOne({
           formUuid: ARCHIVE_FORM_UUID,
           formData: formDataObj,
         });
         console.log(`ctx.form.createOne 成功`);
-      } catch (formError: any) {
-        // 如果表单数据表未初始化，尝试通过 ctx.platform.api 初始化
-        console.log(`ctx.form.createOne 失败: ${formError?.message}，尝试初始化数据表...`);
-        
-        if (ctx?.platform?.api) {
-          try {
-            // 尝试调用平台 API 初始化表单数据表
-            const initResult = await ctx.platform.api.request({
-              method: "POST",
-              path: `/api/v1/forms/${ARCHIVE_FORM_UUID}/data-table/init`,
-            });
-            console.log(`数据表初始化结果:`, JSON.stringify(initResult).slice(0, 300));
-            
-            // 初始化后重试 createOne
-            saveResult = await ctx.form.createOne({
-              formUuid: ARCHIVE_FORM_UUID,
-              formData: formDataObj,
-            });
-            console.log(`初始化后 ctx.form.createOne 成功`);
-          } catch (initError: any) {
-            console.log(`数据表初始化也失败: ${initError?.message}`);
-            throw formError; // 抛出原始错误
-          }
-        } else {
-          throw formError;
-        }
+      } catch (e: any) {
+        lastError = e;
+        console.log(`ctx.form.createOne 失败: ${e?.message}`);
       }
-    } else {
-      throw new Error("ctx.form.createOne 不可用");
+    }
+    
+    // 方式 2: ctx.platform.api 直接调用
+    if (!saveResult && ctx?.platform?.api) {
+      try {
+        console.log(`尝试通过 ctx.platform.api 保存...`);
+        saveResult = await ctx.platform.api.request({
+          method: "POST",
+          path: `/api/v1/forms/${ARCHIVE_FORM_UUID}/data`,
+          body: { formData: formDataObj },
+        });
+        console.log(`ctx.platform.api 保存成功:`, JSON.stringify(saveResult).slice(0, 300));
+      } catch (e: any) {
+        lastError = e;
+        console.log(`ctx.platform.api 保存失败: ${e?.message}`);
+      }
+    }
+    
+    // 方式 3: ctx.utils.http 调用平台 API
+    if (!saveResult && ctx?.utils?.http) {
+      try {
+        console.log(`尝试通过 ctx.utils.http 保存...`);
+        saveResult = await ctx.utils.http.post(`/api/v1/forms/${ARCHIVE_FORM_UUID}/data`, {
+          formData: formDataObj,
+        });
+        console.log(`ctx.utils.http 保存成功:`, JSON.stringify(saveResult).slice(0, 300));
+      } catch (e: any) {
+        lastError = e;
+        console.log(`ctx.utils.http 保存失败: ${e?.message}`);
+      }
+    }
+    
+    if (!saveResult) {
+      throw lastError || new Error("所有保存方式均失败");
     }
     
     console.log(`归档保存响应:`, JSON.stringify(saveResult).slice(0, 500));
