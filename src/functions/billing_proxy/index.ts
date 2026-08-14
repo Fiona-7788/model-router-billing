@@ -1248,12 +1248,19 @@ async function queryLocalBillingData(ctx: any, params: any) {
         { method: "GET" as const, path: `/api/v1/form-data?formUuid=${ARCHIVE_FORM_UUID}` },
         { method: "GET" as const, path: `/forms/${ARCHIVE_FORM_UUID}/data` },
         { method: "POST" as const, path: `/api/form-data/query`, body: { formUuid: ARCHIVE_FORM_UUID, pageSize: 100 } },
+        { method: "GET" as const, path: `/api/v1/form-data/${ARCHIVE_FORM_UUID}` },
+        { method: "POST" as const, path: `/api/v1/form-data/query`, body: { formUuid: ARCHIVE_FORM_UUID, pageSize: 100 } },
+        { method: "GET" as const, path: `/service/api/v1/form-data?formUuid=${ARCHIVE_FORM_UUID}` },
       ];
       for (const ep of queryEndpoints) {
         if (items && items.length > 0) break;
         try {
-          queryAttempts.push(`api:${ep.path}`);
+          queryAttempts.push(`api:${ep.method}:${ep.path}`);
           const result = await ctx.platform.api.request(ep);
+          const resultType = typeof result;
+          const resultStr = result && typeof result === "object" ? JSON.stringify(result).slice(0, 200) : String(result).slice(0, 200);
+          console.log(`api:${ep.path} 返回:`, resultType, resultStr);
+          
           if (Array.isArray(result)) {
             items = result;
             queryAttempts.push(`api:${ep.path}:OK`);
@@ -1263,9 +1270,53 @@ async function queryLocalBillingData(ctx: any, params: any) {
           } else if (result?.resultList && Array.isArray(result.resultList)) {
             items = result.resultList;
             queryAttempts.push(`api:${ep.path}:OK`);
+          } else if (result?.items && Array.isArray(result.items)) {
+            items = result.items;
+            queryAttempts.push(`api:${ep.path}:OK`);
+          } else if (result?.records && Array.isArray(result.records)) {
+            items = result.records;
+            queryAttempts.push(`api:${ep.path}:OK`);
+          } else {
+            queryAttempts.push(`api:${ep.path}:noArray|type:${resultType}`);
           }
         } catch (e: any) {
           queryAttempts.push(`api:${ep.path}:${e?.message || 'failed'}`);
+          console.log(`api:${ep.path} 失败:`, e?.message);
+        }
+      }
+    }
+    
+    // 方式 5: 使用 ctx.utils.http 直接调用平台 API
+    if ((!items || items.length === 0) && ctx?.utils?.http) {
+      const httpEndpoints = [
+        { method: "GET" as const, url: `/api/v1/form-data?formUuid=${ARCHIVE_FORM_UUID}` },
+        { method: "POST" as const, url: `/api/form-data/query`, data: { formUuid: ARCHIVE_FORM_UUID, pageSize: 100 } },
+        { method: "GET" as const, url: `/service/api/v1/form-data?formUuid=${ARCHIVE_FORM_UUID}` },
+      ];
+      for (const ep of httpEndpoints) {
+        if (items && items.length > 0) break;
+        try {
+          queryAttempts.push(`http:${ep.method}:${ep.url}`);
+          const result = await ctx.utils.http.request(ep);
+          const resultType = typeof result;
+          const resultStr = result && typeof result === "object" ? JSON.stringify(result).slice(0, 200) : String(result).slice(0, 200);
+          console.log(`http:${ep.url} 返回:`, resultType, resultStr);
+          
+          if (Array.isArray(result)) {
+            items = result;
+            queryAttempts.push(`http:${ep.url}:OK`);
+          } else if (result?.data && Array.isArray(result.data)) {
+            items = result.data;
+            queryAttempts.push(`http:${ep.url}:OK`);
+          } else if (result?.resultList && Array.isArray(result.resultList)) {
+            items = result.resultList;
+            queryAttempts.push(`http:${ep.url}:OK`);
+          } else {
+            queryAttempts.push(`http:${ep.url}:noArray|type:${resultType}`);
+          }
+        } catch (e: any) {
+          queryAttempts.push(`http:${ep.url}:${e?.message || 'failed'}`);
+          console.log(`http:${ep.url} 失败:`, e?.message);
         }
       }
     }
