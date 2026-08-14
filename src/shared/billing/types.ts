@@ -61,14 +61,18 @@ export interface CallSourceRecord {
 
 /** 账单看板查询参数 */
 export interface BillingDashboardParams {
-  date: string;
+  date?: string;
+  startDate?: string;
+  endDate?: string;
   companyId?: string;
   modelCategory?: string;
 }
 
 /** 调取来源查询参数 */
 export interface CallSourcesParams {
-  date: string;
+  date?: string;
+  startDate?: string;
+  endDate?: string;
   companyId?: string;
   model?: string;
   page?: number;

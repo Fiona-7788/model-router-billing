@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { DatePicker, Select, Spin, Table, Tag, Input } from "antd";
+import { DatePicker, Select, Spin, Table, Tag, Input, Button } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
-import dayjs from "dayjs";
+import dayjs, { Dayjs } from "dayjs";
+import * as XLSX from "xlsx";
+import { Download } from "lucide-react";
 
 import { billingApi } from "@/shared/billing/api-client";
 import type { CallSourceRecord, Company, PaginatedResponse } from "@/shared/billing/types";
@@ -18,7 +20,6 @@ function formatNumber(value: number): string {
 }
 
 export function CallSourcesPage() {
-  const [date, setDate] = useState(dayjs());
   const [companyId, setCompanyId] = useState<string | undefined>();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [data, setData] = useState<PaginatedResponse<CallSourceRecord> | null>(null);
@@ -27,13 +28,19 @@ export function CallSourcesPage() {
   const [pageSize, setPageSize] = useState(20);
   const [searchText, setSearchText] = useState("");
 
-  const dateStr = date.format("YYYY-MM-DD");
+  // 日期范围：默认最近 30 天
+  const [dateRange, setDateRange] = useState<[Dayjs, Dayjs]>([dayjs().subtract(29, "day"), dayjs()]);
+  const [quickRange, setQuickRange] = useState<string>("last30");
+
+  const startDate = dateRange[0].format("YYYY-MM-DD");
+  const endDate = dateRange[1].format("YYYY-MM-DD");
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const result = await billingApi.getCallSources({
-        date: dateStr,
+        startDate,
+        endDate,
         companyId,
         page,
         pageSize,
@@ -42,16 +49,36 @@ export function CallSourcesPage() {
     } finally {
       setLoading(false);
     }
-  }, [dateStr, companyId, page, pageSize]);
+  }, [startDate, endDate, companyId, page, pageSize]);
 
   useEffect(() => {
-    // 从真实 API 获取客户列表
     billingApi.getCompanies().then(setCompanies);
   }, []);
 
   useEffect(() => {
     void fetchData();
   }, [fetchData]);
+
+  // 导出 Excel
+  const handleExport = useCallback(() => {
+    if (!data?.items.length) return;
+    const wb = XLSX.utils.book_new();
+    const exportData = data.items.map(r => ({
+      "公司": r.company,
+      "模型": r.model,
+      "类别": r.modelCategory,
+      "调用次数": r.calls,
+      "输入 Token": r.inputTokens,
+      "输出 Token": r.outputTokens,
+      "总 Token": r.totalTokens,
+      "费用": r.cost,
+      "日期": r.date,
+      "API Key ID": r.apiKeyId || "",
+    }));
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    XLSX.utils.book_append_sheet(wb, ws, "调用来源明细");
+    XLSX.writeFile(wb, `调用来源_${startDate}_${endDate}.xlsx`);
+  }, [data, startDate, endDate]);
 
   const filteredItems = data?.items.filter(
     r =>
@@ -148,18 +175,39 @@ export function CallSourcesPage() {
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-slate-600">日期</span>
-            <DatePicker
-              value={date}
-              onChange={v => {
-                if (v) {
-                  setDate(v);
-                  setPage(1);
+            <span className="text-sm font-medium text-slate-600">日期范围</span>
+            <Select
+              style={{ width: 120 }}
+              value={quickRange}
+              onChange={(v) => {
+                setQuickRange(v);
+                if (v === "last7") {
+                  setDateRange([dayjs().subtract(6, "day"), dayjs()]);
+                } else if (v === "last30") {
+                  setDateRange([dayjs().subtract(29, "day"), dayjs()]);
+                } else if (v === "last90") {
+                  setDateRange([dayjs().subtract(89, "day"), dayjs()]);
                 }
               }}
-              allowClear={false}
-              size="middle"
+              options={[
+                { label: "最近 7 天", value: "last7" },
+                { label: "最近 30 天", value: "last30" },
+                { label: "最近 90 天", value: "last90" },
+                { label: "自定义", value: "custom" },
+              ]}
             />
+            {quickRange === "custom" && (
+              <DatePicker.RangePicker
+                value={dateRange}
+                onChange={(dates) => {
+                  if (dates && dates[0] && dates[1]) {
+                    setDateRange([dates[0], dates[1]]);
+                    setPage(1);
+                  }
+                }}
+                style={{ width: 240 }}
+              />
+            )}
           </div>
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-slate-600">公司</span>
@@ -188,6 +236,16 @@ export function CallSourcesPage() {
               onChange={e => setSearchText(e.target.value)}
               allowClear
             />
+          </div>
+          <div className="ml-auto">
+            <Button
+              type="primary"
+              icon={<Download size={16} />}
+              onClick={handleExport}
+              disabled={!data?.items.length}
+            >
+              导出 Excel
+            </Button>
           </div>
         </div>
 

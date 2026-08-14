@@ -15,6 +15,34 @@ import crypto from "crypto";
 // 使用 ctx.utils.http（基于 axios）作为唯一的 HTTP 客户端
 // ctx.utils.http 提供 get/post/put/patch/delete/request 方法
 
+/**
+ * 将日期字符串（YYYY-MM-DD）转换为 UTC 时间戳
+ * 支持 startDate/endDate 参数，也兼容旧的 date 参数
+ */
+function parseDateRange(params: any): { startTime: number; endTime: number } {
+  const now = Math.floor(Date.now() / 1000);
+  const beijingOffset = 8 * 3600;
+  
+  if (params.startDate && params.endDate) {
+    // 日期范围模式
+    const [sy, sm, sd] = params.startDate.split("-").map(Number);
+    const [ey, em, ed] = params.endDate.split("-").map(Number);
+    const startTime = Date.UTC(sy, sm - 1, sd) / 1000 - beijingOffset;
+    const endTime = Date.UTC(ey, em - 1, ed) / 1000 - beijingOffset + 86400; // 包含结束日整天
+    return { startTime, endTime };
+  }
+  
+  if (params.date) {
+    // 单日模式
+    const [y, m, d] = params.date.split("-").map(Number);
+    const dayStartUTC = Date.UTC(y, m - 1, d) / 1000 - beijingOffset;
+    return { startTime: dayStartUTC, endTime: dayStartUTC + 86400 };
+  }
+  
+  // 默认最近 30 天
+  return { startTime: now - 86400 * 30, endTime: now };
+}
+
 // 阿里云 AiContent API 配置
 const API_HOST = "aicontent.aliyuncs.com";
 const API_BASE = `https://${API_HOST}`;
@@ -276,21 +304,17 @@ function filterByAllowedDepartments(
  * totalCost 返回今日费用，totalCalls/totalTokens 返回周期累计
  */
 async function getCostOverview(ctx: any, params: any) {
+  const { startTime, endTime } = parseDateRange(params);
   const now = Math.floor(Date.now() / 1000);
-  const startTime = params.startTime || now - 86400 * 30;
-  const endTime = params.endTime || now;
 
   // 今日时间范围（北京时间 UTC+8）
-  // summaryTime 是聚合时间戳，表示该天零点的 UTC 时间
-  // 例如 summaryTime = 1786464000 (UTC 2026-08-11T16:00:00Z) = 北京时间 2026/8/12 00:00:00
-  // 这表示的是 8/11 这一天的汇总数据，所以应该用 summaryTime + 8小时来判断日期
-  const beijingOffset = 8 * 3600; // 8小时偏移
+  const beijingOffset = 8 * 3600;
   
   // 计算北京时间的今天日期（年月日）
   const nowBeijing = new Date((now + beijingOffset) * 1000);
   const todayYear = nowBeijing.getUTCFullYear();
-  const todayMonth = nowBeijing.getUTCMonth(); // 0-11
-  const todayDate = nowBeijing.getUTCDate(); // 1-31
+  const todayMonth = nowBeijing.getUTCMonth();
+  const todayDate = nowBeijing.getUTCDate();
   
   // 计算昨天的日期（年月日）
   const yesterdayBeijing = new Date(nowBeijing.getTime() - 86400 * 1000);
@@ -388,9 +412,7 @@ async function getCostOverview(ctx: any, params: any) {
  * 改用 breakdown API（包含所有公司的每日数据），不再逐个调用 trend API
  */
 async function getCostTrend(ctx: any, params: any) {
-  const now = Math.floor(Date.now() / 1000);
-  const startTime = params.startTime || now - 86400 * 30;
-  const endTime = params.endTime || now;
+  const { startTime, endTime } = parseDateRange(params);
   
   // 并发获取 breakdown 数据和 parentMap
   const [allRows, parentMap] = await Promise.all([
@@ -433,12 +455,11 @@ async function getCostTrend(ctx: any, params: any) {
  * totalCost/totalCalls/totalTokens 返回今日数据
  */
 async function getModelCostList(ctx: any, params: any) {
-  const now = Math.floor(Date.now() / 1000);
-  const startTime = params.startTime || now - 86400 * 30;
-  const endTime = params.endTime || now;
+  const { startTime, endTime } = parseDateRange(params);
   
   // 今日时间范围（北京时间 UTC+8）
-  const beijingOffset = 8 * 3600; // 8小时偏移
+  const beijingOffset = 8 * 3600;
+  const now = Math.floor(Date.now() / 1000);
   const nowBeijing = new Date((now + beijingOffset) * 1000);
   const todayYear = nowBeijing.getUTCFullYear();
   const todayMonth = nowBeijing.getUTCMonth(); // 0-11
@@ -727,17 +748,11 @@ async function getCompanyList(ctx: any) {
  * totalCost 返回今日费用，totalCalls/totalTokens 返回周期累计
  */
 async function getCompanyCostSummary(ctx: any, params: any) {
-  const now = Math.floor(Date.now() / 1000);
-  const startTime = params.startTime || now - 86400 * 30;
-  const endTime = params.endTime || now;
+  const { startTime, endTime } = parseDateRange(params);
 
   // 今日时间范围（北京时间 UTC+8）
-  // summaryTime 是聚合时间戳，表示该天零点的 UTC 时间
-  // 例如 summaryTime = 1786464000 (UTC 2026-08-11T16:00:00Z) = 北京时间 2026/8/12 00:00:00
-  // 这表示的是 8/11 这一天的汇总数据，所以应该用 summaryTime + 8小时来判断日期
-  const beijingOffset = 8 * 3600; // 8小时偏移
-  
-  // 计算北京时间的今天日期（年月日）
+  const beijingOffset = 8 * 3600;
+  const now = Math.floor(Date.now() / 1000);
   const nowBeijing = new Date((now + beijingOffset) * 1000);
   const todayYear = nowBeijing.getUTCFullYear();
   const todayMonth = nowBeijing.getUTCMonth(); // 0-11
@@ -800,21 +815,7 @@ async function getCompanyCostSummary(ctx: any, params: any) {
  * 支持按公司过滤
  */
 async function getCallSources(ctx: any, params: any) {
-  const now = Math.floor(Date.now() / 1000);
-  
-  // 前端传入 date 字符串（如 "2026-08-13"），转换为北京时间当日时间范围
-  let startTime: number;
-  let endTime: number;
-  if (params.date) {
-    // 解析日期字符串为北京时间当日 00:00:00 ~ 23:59:59
-    const [y, m, d] = params.date.split("-").map(Number);
-    const dayStartUTC = Date.UTC(y, m - 1, d) / 1000 - 8 * 3600; // 北京时间 00:00 = UTC 前一天 16:00
-    startTime = dayStartUTC;
-    endTime = dayStartUTC + 86400;
-  } else {
-    startTime = params.startTime || now - 86400 * 30;
-    endTime = params.endTime || now;
-  }
+  const { startTime, endTime } = parseDateRange(params);
   
   // 获取全部 breakdown 数据 + 客户-父级映射
   const [allRows, parentMap] = await Promise.all([

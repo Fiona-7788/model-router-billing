@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { DatePicker, Select, Spin, Table, Tag } from "antd";
+import { DatePicker, Select, Spin, Table, Tag, Button } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import ReactEChartsCore from "echarts-for-react/lib/core";
 import * as echarts from "echarts/core";
@@ -17,8 +17,10 @@ import {
   Layers,
   ArrowUpRight,
   ArrowDownRight,
+  Download,
 } from "lucide-react";
-import dayjs from "dayjs";
+import dayjs, { Dayjs } from "dayjs";
+import * as XLSX from "xlsx";
 
 import { billingApi, COMPANY_COLORS, getCompanyColor } from "@/shared/billing/api-client";
 import type {
@@ -188,12 +190,22 @@ export function BillingDashboardPage() {
   const [summary, setSummary] = useState<CompanyCostSummary[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const dateStr = dayjs().format("YYYY-MM-DD");
+  // 日期范围：默认最近 30 天
+  const [dateRange, setDateRange] = useState<[Dayjs, Dayjs]>([dayjs().subtract(29, "day"), dayjs()]);
+  const [quickRange, setQuickRange] = useState<string>("last30");
+
+  const startDate = dateRange[0].format("YYYY-MM-DD");
+  const endDate = dateRange[1].format("YYYY-MM-DD");
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const params = { date: dateStr, companyId, modelCategory: category === "全部类别" ? undefined : category };
+      const params = {
+        startDate,
+        endDate,
+        companyId,
+        modelCategory: category === "全部类别" ? undefined : category,
+      };
       const [ov, tr, mc, sm] = await Promise.all([
         billingApi.getCostOverview(params),
         billingApi.getCostTrend(params),
@@ -209,7 +221,7 @@ export function BillingDashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [dateStr, companyId, category]);
+  }, [startDate, endDate, companyId, category]);
 
   useEffect(() => {
     // 从真实 API 获取客户列表
@@ -219,6 +231,36 @@ export function BillingDashboardPage() {
   useEffect(() => {
     void fetchData();
   }, [fetchData]);
+
+  // 导出 Excel
+  const handleExport = useCallback(() => {
+    const wb = XLSX.utils.book_new();
+    
+    // 模型费用明细 sheet
+    const modelData = modelCosts.map(m => ({
+      "模型": m.model,
+      "类别": m.modelCategory,
+      "调用次数": m.totalCalls,
+      "输入 Token": m.totalInputTokens,
+      "输出 Token": m.totalOutputTokens,
+      "费用": m.totalCost,
+    }));
+    const modelWs = XLSX.utils.json_to_sheet(modelData);
+    XLSX.utils.book_append_sheet(wb, modelWs, "模型费用明细");
+    
+    // 公司费用汇总 sheet
+    const companyData = summary.map(s => ({
+      "公司": s.companyName,
+      "总费用": s.totalCost,
+      "模型数": s.modelBreakdown.length,
+    }));
+    const companyWs = XLSX.utils.json_to_sheet(companyData);
+    XLSX.utils.book_append_sheet(wb, companyWs, "公司费用汇总");
+    
+    // 下载文件
+    const fileName = `账单看板_${startDate}_${endDate}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+  }, [modelCosts, summary, startDate, endDate]);
 
   const modelColumns: ColumnsType<ModelCostItem> = [
     {
@@ -272,6 +314,40 @@ export function BillingDashboardPage() {
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
           <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-slate-600">日期范围</span>
+            <Select
+              style={{ width: 120 }}
+              value={quickRange}
+              onChange={(v) => {
+                setQuickRange(v);
+                if (v === "last7") {
+                  setDateRange([dayjs().subtract(6, "day"), dayjs()]);
+                } else if (v === "last30") {
+                  setDateRange([dayjs().subtract(29, "day"), dayjs()]);
+                } else if (v === "last90") {
+                  setDateRange([dayjs().subtract(89, "day"), dayjs()]);
+                }
+              }}
+              options={[
+                { label: "最近 7 天", value: "last7" },
+                { label: "最近 30 天", value: "last30" },
+                { label: "最近 90 天", value: "last90" },
+                { label: "自定义", value: "custom" },
+              ]}
+            />
+            {quickRange === "custom" && (
+              <DatePicker.RangePicker
+                value={dateRange}
+                onChange={(dates) => {
+                  if (dates && dates[0] && dates[1]) {
+                    setDateRange([dates[0], dates[1]]);
+                  }
+                }}
+                style={{ width: 240 }}
+              />
+            )}
+          </div>
+          <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-slate-600">公司</span>
             <Select
               allowClear
@@ -281,7 +357,7 @@ export function BillingDashboardPage() {
               onChange={setCompanyId}
               options={[
                 { label: "全部公司", value: undefined },
-                ...companies.map(c => ({ label: c.name, value: c.id })),
+                ...companies.map(c => ({ label: c.name, value: c.name })),
               ]}
             />
           </div>
@@ -293,6 +369,16 @@ export function BillingDashboardPage() {
               onChange={setCategory}
               options={MODEL_CATEGORIES.map(c => ({ label: c, value: c }))}
             />
+          </div>
+          <div className="ml-auto">
+            <Button
+              type="primary"
+              icon={<Download size={16} />}
+              onClick={handleExport}
+              disabled={!modelCosts.length && !summary.length}
+            >
+              导出 Excel
+            </Button>
           </div>
         </div>
 
