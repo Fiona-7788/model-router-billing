@@ -845,8 +845,17 @@ async function getCallSources(ctx: any, params: any) {
   }
   
   // 计算整个日期范围的汇总数据
-  const totalCost = normalizedRows.reduce((sum, r) => sum + (r.payableAmount || 0), 0);
-  const totalCalls = normalizedRows.reduce((sum, r) => sum + (r.callCount || 0), 0);
+  let totalCost = 0;
+  let totalCalls = 0;
+  for (const r of normalizedRows) {
+    totalCost += r.payableAmount || 0;
+    // 调用次数在 metricValues JSON 里
+    let vals: any = r.metricValues;
+    if (typeof vals === "string") {
+      try { vals = JSON.parse(vals); } catch { vals = {}; }
+    }
+    totalCalls += vals?.total_calls || 0;
+  }
   
   // 分页
   const page = params.page || 1;

@@ -38,18 +38,41 @@ export function CallSourcesPage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await billingApi.getCallSources({
-        startDate,
-        endDate,
-        companyId,
-        page,
-        pageSize,
+      // 获取所有数据（不分页），前端自行分页
+      const allItems: CallSourceRecord[] = [];
+      let currentPage = 1;
+      const pageSize = 500;
+      let total = 0;
+      let totalCost: number | undefined;
+      let totalCalls: number | undefined;
+
+      do {
+        const result = await billingApi.getCallSources({
+          startDate,
+          endDate,
+          companyId,
+          page: currentPage,
+          pageSize,
+        });
+        allItems.push(...(result?.items || []));
+        total = result?.total || 0;
+        if (result?.totalCost !== undefined) totalCost = result.totalCost;
+        if (result?.totalCalls !== undefined) totalCalls = result.totalCalls;
+        currentPage++;
+      } while (allItems.length < total);
+
+      setData({
+        items: allItems,
+        total,
+        totalCost,
+        totalCalls,
+        page: 1,
+        pageSize: allItems.length,
       });
-      setData(result || { items: [], total: 0, page: 1, pageSize: 20 });
     } finally {
       setLoading(false);
     }
-  }, [startDate, endDate, companyId, page, pageSize]);
+  }, [startDate, endDate, companyId]);
 
   useEffect(() => {
     billingApi.getCompanies().then(setCompanies);
