@@ -943,33 +943,33 @@ async function archiveBillingData(ctx: any, params: any) {
       }
     }
     
-    // 方式 2: ctx.platform.api 直接调用
+    // 方式 2: ctx.platform.api 直接调用（使用不同端点格式）
     if (!saveResult && ctx?.platform?.api) {
       try {
-        console.log(`尝试通过 ctx.platform.api 保存...`);
+        console.log(`尝试通过 ctx.platform.api 保存（方式 A）...`);
+        // 尝试端点格式 1
         saveResult = await ctx.platform.api.request({
           method: "POST",
-          path: `/api/v1/forms/${ARCHIVE_FORM_UUID}/data`,
-          body: { formData: formDataObj },
+          path: `/forms/${ARCHIVE_FORM_UUID}/records`,
+          body: { data: formDataObj },
         });
-        console.log(`ctx.platform.api 保存成功:`, JSON.stringify(saveResult).slice(0, 300));
+        console.log(`ctx.platform.api 方式 A 成功:`, JSON.stringify(saveResult).slice(0, 300));
       } catch (e: any) {
-        lastError = e;
-        console.log(`ctx.platform.api 保存失败: ${e?.message}`);
-      }
-    }
-    
-    // 方式 3: ctx.utils.http 调用平台 API
-    if (!saveResult && ctx?.utils?.http) {
-      try {
-        console.log(`尝试通过 ctx.utils.http 保存...`);
-        saveResult = await ctx.utils.http.post(`/api/v1/forms/${ARCHIVE_FORM_UUID}/data`, {
-          formData: formDataObj,
-        });
-        console.log(`ctx.utils.http 保存成功:`, JSON.stringify(saveResult).slice(0, 300));
-      } catch (e: any) {
-        lastError = e;
-        console.log(`ctx.utils.http 保存失败: ${e?.message}`);
+        console.log(`ctx.platform.api 方式 A 失败: ${e?.message}`);
+        
+        try {
+          console.log(`尝试通过 ctx.platform.api 保存（方式 B）...`);
+          // 尝试端点格式 2
+          saveResult = await ctx.platform.api.request({
+            method: "POST",
+            path: `/form-data/${ARCHIVE_FORM_UUID}`,
+            body: formDataObj,
+          });
+          console.log(`ctx.platform.api 方式 B 成功:`, JSON.stringify(saveResult).slice(0, 300));
+        } catch (e2: any) {
+          lastError = e2;
+          console.log(`ctx.platform.api 方式 B 失败: ${e2?.message}`);
+        }
       }
     }
     
