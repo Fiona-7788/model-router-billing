@@ -1021,9 +1021,21 @@ async function archiveBillingData(ctx: any, params: any) {
             resourceType: "billing_archive",
             data: formDataObj,
           });
-          attempts.push(`resources.${method}:OK`);
-          console.log(`ctx.resources.${method} 成功`);
+          // 检查返回值是否有效（不能是字符串 "[object Object]"）
+          const isValidResult = saveResult && 
+            typeof saveResult !== "string" && 
+            (typeof saveResult === "object" || typeof saveResult === "number");
+          
+          if (isValidResult) {
+            attempts.push(`resources.${method}:OK`);
+            console.log(`ctx.resources.${method} 成功`);
+          } else {
+            saveResult = null;
+            attempts.push(`resources.${method}:invalidResult|${String(saveResult).slice(0, 50)}`);
+            console.log(`ctx.resources.${method} 返回无效结果:`, saveResult);
+          }
         } catch (e: any) {
+          saveResult = null;
           attempts.push(`resources.${method}:${e?.message || 'failed'}`);
         }
       }
