@@ -310,7 +310,7 @@ export function BillingDashboardPage() {
     const companyData = summary.map((s) => ({
       "公司": s.companyName,
       "总费用": s.totalCost,
-      "模型数": s.modelBreakdown.length,
+      "模型数": (s.modelBreakdown || []).length,
     }));
     const companyWs = XLSX.utils.json_to_sheet(companyData);
     XLSX.utils.book_append_sheet(wb, companyWs, "公司费用汇总");
