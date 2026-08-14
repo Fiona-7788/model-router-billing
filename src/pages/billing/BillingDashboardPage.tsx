@@ -290,11 +290,36 @@ export function BillingDashboardPage() {
     void fetchData();
   }, [fetchData]);
 
-  // 导出 Excel — 导出今日概况数据
+  // 导出 Excel — 导出今日用量概况所有数据
   const handleExport = useCallback(() => {
     const wb = XLSX.utils.book_new();
+    const today = dayjs().format("YYYY-MM-DD");
 
-    // 模型费用明细 sheet
+    // Sheet 1: 今日概况
+    if (overview) {
+      const overviewData = [
+        { "指标": "当日总费用", "数值": formatCurrency(overview.totalCost), "备注": `较昨日 ${overview.costChangeRate > 0 ? "+" : ""}${(overview.costChangeRate * 100).toFixed(1)}%` },
+        { "指标": "当日调用次数", "数值": formatNumber(overview.totalCalls), "备注": "" },
+        { "指标": "当日 Token 消耗", "数值": formatNumber(overview.totalTokens), "备注": "" },
+        { "指标": "活跃公司数", "数值": `${new Set(trend.map((t) => t.company)).size} 家`, "备注": `共 ${companies.length} 家` },
+      ];
+      const overviewWs = XLSX.utils.json_to_sheet(overviewData);
+      XLSX.utils.book_append_sheet(wb, overviewWs, "今日概况");
+    }
+
+    // Sheet 2: 公司费用排名
+    const rankingData = summary
+      .sort((a, b) => b.totalCost - a.totalCost)
+      .map((s, i) => ({
+        "排名": i + 1,
+        "公司": s.companyName,
+        "总费用": s.totalCost,
+        "模型数": (s.modelBreakdown || []).length,
+      }));
+    const rankingWs = XLSX.utils.json_to_sheet(rankingData);
+    XLSX.utils.book_append_sheet(wb, rankingWs, "公司费用排名");
+
+    // Sheet 3: 模型费用明细
     const modelData = modelCosts.map((m) => ({
       "模型": m.model,
       "类别": m.modelCategory,
@@ -306,18 +331,8 @@ export function BillingDashboardPage() {
     const modelWs = XLSX.utils.json_to_sheet(modelData);
     XLSX.utils.book_append_sheet(wb, modelWs, "模型费用明细");
 
-    // 公司费用汇总 sheet
-    const companyData = summary.map((s) => ({
-      "公司": s.companyName,
-      "总费用": s.totalCost,
-      "模型数": (s.modelBreakdown || []).length,
-    }));
-    const companyWs = XLSX.utils.json_to_sheet(companyData);
-    XLSX.utils.book_append_sheet(wb, companyWs, "公司费用汇总");
-
-    const today = dayjs().format("YYYY-MM-DD");
     XLSX.writeFile(wb, `今日用量概况_${today}.xlsx`);
-  }, [modelCosts, summary]);
+  }, [overview, trend, companies, summary, modelCosts]);
 
   const modelColumns: ColumnsType<ModelCostItem> = [
     {
