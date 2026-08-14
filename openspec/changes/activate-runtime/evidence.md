@@ -81,3 +81,15 @@
 ## SDD Bypass
 
 - 2026-08-12T07:55:23.852Z openxiangda runtime deploy bypassed SDD gate: Deploy latest frontend
+
+## SDD Bypass
+
+- 2026-08-14T07:12:35.512Z openxiangda workspace publish bypassed SDD gate: 初始化表单数据表
+
+## SDD Bypass
+
+- 2026-08-14T07:13:28.626Z openxiangda workspace publish bypassed SDD gate: 初始化账单归档表单数据表
+
+## SDD Bypass
+
+- 2026-08-14T07:14:08.586Z openxiangda workspace publish bypassed SDD gate: 初始化账单归档表单数据表

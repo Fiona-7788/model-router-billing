@@ -918,17 +918,9 @@ async function archiveBillingData(ctx: any, params: any) {
   };
   
   try {
-    // 使用 ctx.form 或 ctx.utils.http 保存表单数据
-    const formDataJson = JSON.stringify({
-      archive_date: startTime * 1000,
-      data_json: JSON.stringify(archiveData),
-      record_count: normalizedRows.length,
-      archive_type: params.archiveType || "daily",
-    });
-    
     let saveResult: any = null;
     
-    // 使用 ctx.form.createOne (平台内置表单 API)
+    // 尝试使用 ctx.form.createOne (平台内置表单 API)
     if (ctx?.form && typeof ctx.form.createOne === "function") {
       const formDataObj = {
         archive_date: startTime * 1000,
@@ -936,11 +928,39 @@ async function archiveBillingData(ctx: any, params: any) {
         record_count: normalizedRows.length,
         archive_type: params.archiveType || "daily",
       };
-      saveResult = await ctx.form.createOne({
-        formUuid: ARCHIVE_FORM_UUID,
-        formData: formDataObj,
-      });
-      console.log(`ctx.form.createOne 成功`);
+      try {
+        saveResult = await ctx.form.createOne({
+          formUuid: ARCHIVE_FORM_UUID,
+          formData: formDataObj,
+        });
+        console.log(`ctx.form.createOne 成功`);
+      } catch (formError: any) {
+        // 如果表单数据表未初始化，尝试通过 ctx.platform.api 初始化
+        console.log(`ctx.form.createOne 失败: ${formError?.message}，尝试初始化数据表...`);
+        
+        if (ctx?.platform?.api) {
+          try {
+            // 尝试调用平台 API 初始化表单数据表
+            const initResult = await ctx.platform.api.request({
+              method: "POST",
+              path: `/api/v1/forms/${ARCHIVE_FORM_UUID}/data-table/init`,
+            });
+            console.log(`数据表初始化结果:`, JSON.stringify(initResult).slice(0, 300));
+            
+            // 初始化后重试 createOne
+            saveResult = await ctx.form.createOne({
+              formUuid: ARCHIVE_FORM_UUID,
+              formData: formDataObj,
+            });
+            console.log(`初始化后 ctx.form.createOne 成功`);
+          } catch (initError: any) {
+            console.log(`数据表初始化也失败: ${initError?.message}`);
+            throw formError; // 抛出原始错误
+          }
+        } else {
+          throw formError;
+        }
+      }
     } else {
       throw new Error("ctx.form.createOne 不可用");
     }

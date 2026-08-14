@@ -985,3 +985,31 @@
 - targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
 - followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
 - user: fengyujing
+## 2026-08-14T06:08:44.474Z
+
+- command: openxiangda resource publish
+- reason: 采用线上最新基线进行function修复部署
+- targets: {"forms":[],"pages":[],"functions":["billing_proxy"],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-14T07:12:35.505Z
+
+- command: openxiangda workspace publish
+- reason: 初始化表单数据表
+- targets: {"forms":["FORM_F52E3E6DA4874C5BB8B1E6B2FA41AD3A"],"pages":[],"resources":false,"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-14T07:13:28.619Z
+
+- command: openxiangda workspace publish
+- reason: 初始化账单归档表单数据表
+- targets: {"forms":["FORM_F52E3E6DA4874C5BB8B1E6B2FA41AD3A"],"pages":[],"resources":false,"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-14T07:14:08.581Z
+
+- command: openxiangda workspace publish
+- reason: 初始化账单归档表单数据表
+- targets: {"forms":["FORM_F52E3E6DA4874C5BB8B1E6B2FA41AD3A"],"pages":[],"resources":false,"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
