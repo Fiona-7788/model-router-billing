@@ -174,7 +174,7 @@ function mockCallSources(params: CallSourcesParams): PaginatedResponse<CallSourc
         outputTokens,
         totalTokens: inputTokens + outputTokens,
         cost: Math.round((inputTokens * 0.003 + outputTokens * 0.006) * 100) / 100,
-        date: params.date,
+        date: params.date || params.startDate || "",
         apiKeyId: `ak-${company.id.slice(-2)}-${model.name.slice(0, 4)}`,
       });
     }

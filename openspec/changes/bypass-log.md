@@ -880,3 +880,24 @@
 - targets: {"forms":["billing_data_archive"],"pages":[],"resources":false,"runtime":false,"other":[]}
 - followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
 - user: fengyujing
+## 2026-08-14T05:08:05.183Z
+
+- command: openxiangda resource publish
+- reason: 清理代码并部署最终版本
+- targets: {"forms":[],"pages":[],"functions":["billing_proxy"],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-14T05:08:27.207Z
+
+- command: openxiangda runtime deploy
+- reason: 部署日期范围和导出功能
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-14T05:09:03.591Z
+
+- command: openxiangda runtime deploy
+- reason: 激活日期范围和导出功能
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
