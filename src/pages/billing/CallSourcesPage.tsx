@@ -258,15 +258,13 @@ export function CallSourcesPage() {
             <span>
               总费用{" "}
               <b className="text-slate-800">
-                {formatCurrency(
-                  data.items.reduce((sum, r) => sum + r.cost, 0),
-                )}
+                {formatCurrency(data.totalCost ?? data.items.reduce((sum, r) => sum + r.cost, 0))}
               </b>
             </span>
             <span>
               总调用{" "}
               <b className="text-slate-800">
-                {formatNumber(data.items.reduce((sum, r) => sum + r.calls, 0))}
+                {formatNumber(data.totalCalls ?? data.items.reduce((sum, r) => sum + r.calls, 0))}
               </b>
             </span>
           </div>

@@ -844,6 +844,10 @@ async function getCallSources(ctx: any, params: any) {
     });
   }
   
+  // 计算整个日期范围的汇总数据
+  const totalCost = normalizedRows.reduce((sum, r) => sum + (r.payableAmount || 0), 0);
+  const totalCalls = normalizedRows.reduce((sum, r) => sum + (r.callCount || 0), 0);
+  
   // 分页
   const page = params.page || 1;
   const pageSize = params.pageSize || 20;
@@ -853,6 +857,8 @@ async function getCallSources(ctx: any, params: any) {
   return {
     items: pagedItems,
     total: normalizedRows.length,
+    totalCost: Math.round(totalCost * 100) / 100,
+    totalCalls,
     page,
     pageSize,
   };

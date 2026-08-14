@@ -83,6 +83,8 @@ export interface CallSourcesParams {
 export interface PaginatedResponse<T> {
   items: T[];
   total: number;
+  totalCost?: number;
+  totalCalls?: number;
   page: number;
   pageSize: number;
 }
