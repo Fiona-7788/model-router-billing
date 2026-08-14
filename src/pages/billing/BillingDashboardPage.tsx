@@ -478,7 +478,7 @@ export function BillingDashboardPage() {
               <Button
                 onClick={async () => {
                   try {
-                    const result = await billingApi.invokeBilling("archiveBillingData", { date: dayjs().format("YYYY-MM-DD") });
+                    const result = await billingApi.archiveBillingData({ date: dayjs().format("YYYY-MM-DD") });
                     console.log("归档结果:", result);
                     alert(`归档完成！\n日期: ${result?.date}\n记录数: ${result?.recordCount}\n成功: ${result?.success}`);
                   } catch (error: any) {
