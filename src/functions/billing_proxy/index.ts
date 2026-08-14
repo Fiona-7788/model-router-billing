@@ -918,6 +918,19 @@ async function archiveBillingData(ctx: any, params: any) {
   };
   
   try {
+    // 先调试 ctx 上有哪些可用的存储 API
+    const ctxKeys = Object.keys(ctx || {});
+    console.log(`ctx keys:`, ctxKeys.join(", "));
+    if (ctx?.platform) {
+      console.log(`ctx.platform keys:`, Object.keys(ctx.platform).join(", "));
+    }
+    if (ctx?.platform?.api) {
+      console.log(`ctx.platform.api keys:`, Object.keys(ctx.platform.api).join(", "));
+    }
+    if (ctx?.form) {
+      console.log(`ctx.form keys:`, Object.keys(ctx.form).join(", "));
+    }
+    
     let saveResult: any = null;
     const formDataObj = {
       archive_date: startTime * 1000,
@@ -926,7 +939,6 @@ async function archiveBillingData(ctx: any, params: any) {
       archive_type: params.archiveType || "daily",
     };
     
-    // 尝试多种方式保存数据
     let lastError: any = null;
     
     // 方式 1: ctx.form.createOne
@@ -943,32 +955,35 @@ async function archiveBillingData(ctx: any, params: any) {
       }
     }
     
-    // 方式 2: 通过完整 URL 调用平台 API
-    if (!saveResult && ctx?.utils?.http) {
-      try {
-        const platformBaseUrl = "https://yida.wisejob.cn";
-        console.log(`尝试通过完整 URL 调用平台 API...`);
-        
-        // 尝试平台表单数据创建 API
-        saveResult = await ctx.utils.http.post(
-          `${platformBaseUrl}/api/v1/forms/${ARCHIVE_FORM_UUID}/data`,
-          { formData: formDataObj }
-        );
-        console.log(`平台 API 调用成功:`, JSON.stringify(saveResult).slice(0, 300));
-      } catch (e: any) {
-        lastError = e;
-        console.log(`平台 API 调用失败: ${e?.message}`);
-        
-        // 尝试另一个端点
-        try {
-          console.log(`尝试备用端点 /api/form-data...`);
-          saveResult = await ctx.utils.http.post(
-            `https://yida.wisejob.cn/api/form-data/create`,
-            { formUuid: ARCHIVE_FORM_UUID, formData: formDataObj }
-          );
-          console.log(`备用端点成功:`, JSON.stringify(saveResult).slice(0, 300));
-        } catch (e2: any) {
-          console.log(`备用端点也失败: ${e2?.message}`);
+    // 方式 2: 尝试 ctx.platform 上的其他存储方法
+    if (!saveResult && ctx?.platform) {
+      const platformMethods = Object.keys(ctx.platform).filter(k => 
+        typeof ctx.platform[k] === "function" || 
+        (ctx.platform[k] && typeof ctx.platform[k] === "object")
+      );
+      console.log(`ctx.platform 可用方法:`, platformMethods.join(", "));
+      
+      // 尝试 ctx.platform.api 的各种端点
+      if (ctx?.platform?.api?.request) {
+        const endpoints = [
+          { path: "/api/v1/form-data/create", body: { formUuid: ARCHIVE_FORM_UUID, data: formDataObj } },
+          { path: "/api/v1/forms/records", body: { formUuid: ARCHIVE_FORM_UUID, formData: formDataObj } },
+          { path: "/form/record/create", body: { formUuid: ARCHIVE_FORM_UUID, formData: formDataObj } },
+        ];
+        for (const ep of endpoints) {
+          try {
+            console.log(`尝试端点: ${ep.path}`);
+            saveResult = await ctx.platform.api.request({
+              method: "POST",
+              path: ep.path,
+              body: ep.body,
+            });
+            console.log(`端点 ${ep.path} 成功:`, JSON.stringify(saveResult).slice(0, 300));
+            break;
+          } catch (e: any) {
+            console.log(`端点 ${ep.path} 失败: ${e?.message}`);
+            lastError = e;
+          }
         }
       }
     }
