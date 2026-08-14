@@ -1,8 +1,8 @@
 export const starterBrand = {
   fallbackName: "业务应用",
-  logoText: "A",
-  name: "OpenXiangda",
-  subtitle: "React SPA Starter",
+  logoText: "M",
+  name: "Model Router",
+  subtitle: "账单管理系统",
 };
 
 export const dashboardContent = {
