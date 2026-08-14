@@ -497,6 +497,24 @@ export function BillingDashboardPage() {
                 测试归档今日数据
               </Button>
               <Button
+                onClick={async () => {
+                  try {
+                    const result = await billingApi.queryLocalBillingData({ date: dayjs().format("YYYY-MM-DD") });
+                    console.log("查询结果:", result);
+                    if (result?.found) {
+                      alert(`查询成功！\n日期: ${result?.date}\n记录数: ${result?.recordCount}\n归档时间: ${result?.archivedAt || 'N/A'}\n数据行数: ${result?.rows?.length || 0}`);
+                    } else {
+                      alert(`未找到归档数据！\n日期: ${result?.date}\n错误: ${result?.error || '无数据'}\n总归档数: ${result?.totalArchives || 0}`);
+                    }
+                  } catch (error: any) {
+                    console.error("查询失败:", error);
+                    alert(`查询异常: ${error?.message || "未知错误"}`);
+                  }
+                }}
+              >
+                测试查询今日数据
+              </Button>
+              <Button
                 type="primary"
                 icon={<Download size={16} />}
                 onClick={handleExport}

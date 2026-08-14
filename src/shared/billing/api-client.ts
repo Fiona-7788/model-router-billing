@@ -427,4 +427,8 @@ export const billingApi = {
   /** 归档账单数据到本地表单存储 */
   archiveBillingData: (params: { date: string; archiveType?: string }) =>
     invokeBilling<any>("archiveBillingData", params as unknown as Record<string, unknown>),
+
+  /** 查询本地归档的账单数据 */
+  queryLocalBillingData: (params: { date: string }) =>
+    invokeBilling<any>("queryLocalBillingData", params as unknown as Record<string, unknown>),
 };
