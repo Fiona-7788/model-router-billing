@@ -1171,7 +1171,8 @@ async function queryLocalBillingData(ctx: any, params: any) {
           const result = await ctx.resources.resolveForm({
             formUuid: ARCHIVE_FORM_UUID,
           });
-          console.log(`resources.resolveForm 返回:`, JSON.stringify(result).slice(0, 500));
+          const resultStr = JSON.stringify(result).slice(0, 300);
+          console.log(`resources.resolveForm 返回:`, resultStr);
           
           // 处理不同的返回格式
           if (Array.isArray(result)) {
@@ -1196,12 +1197,11 @@ async function queryLocalBillingData(ctx: any, params: any) {
               items = [result];
               queryAttempts.push("resources.resolveForm:OK(single)");
             } else {
-              // 返回实际内容帮助调试
-              const resultStr = JSON.stringify(result).slice(0, 300);
               queryAttempts.push(`resources.resolveForm:noArray|${resultStr}`);
             }
           } else {
-            queryAttempts.push("resources.resolveForm:noArray");
+            // result 是 null/undefined/string/number 等
+            queryAttempts.push(`resources.resolveForm:noArray|${resultStr}`);
           }
         } catch (e: any) {
           queryAttempts.push(`resources.resolveForm:${e?.message || 'failed'}`);
