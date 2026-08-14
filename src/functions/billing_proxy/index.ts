@@ -918,18 +918,25 @@ async function archiveBillingData(ctx: any, params: any) {
   });
   
   try {
+    // 构建请求头，尝试从 ctx 获取认证信息
+    const headers: Record<string, string> = {
+      "Content-Type": "application/x-www-form-urlencoded",
+    };
+    // 尝试从 ctx 获取 token 或 cookie
+    if (ctx?.token) headers["Authorization"] = `Bearer ${ctx.token}`;
+    if (ctx?.accessToken) headers["Authorization"] = `Bearer ${ctx.accessToken}`;
+    if (ctx?.authToken) headers["Authorization"] = `Bearer ${ctx.authToken}`;
+    if (ctx?.cookie) headers["Cookie"] = ctx.cookie;
+    
     const response = await httpClient.post(saveUrl, 
       new URLSearchParams({
         formUuid: ARCHIVE_FORM_UUID,
         formDataJson,
       }).toString(),
-      {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-      }
+      { headers }
     );
     const data = response?.data ?? response;
+    console.log(`归档保存响应:`, JSON.stringify(data).slice(0, 500));
     console.log(`归档 ${targetDate} 成功: ${normalizedRows.length} 条记录`);
     return {
       success: true,
@@ -980,10 +987,18 @@ async function queryLocalBillingData(ctx: any, params: any) {
   });
   
   try {
+    // 构建请求头，尝试从 ctx 获取认证信息
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (ctx?.token) headers["Authorization"] = `Bearer ${ctx.token}`;
+    if (ctx?.accessToken) headers["Authorization"] = `Bearer ${ctx.accessToken}`;
+    if (ctx?.authToken) headers["Authorization"] = `Bearer ${ctx.authToken}`;
+    if (ctx?.cookie) headers["Cookie"] = ctx.cookie;
+    
     console.log(`搜索归档数据: ${searchUrl}?${searchParams.toString()}`);
-    const response = await httpClient.get(`${searchUrl}?${searchParams.toString()}`, {
-      headers: { "Content-Type": "application/json" },
-    });
+    console.log(`ctx keys: ${Object.keys(ctx || {}).join(', ')}`);
+    const response = await httpClient.get(`${searchUrl}?${searchParams.toString()}`, { headers });
     const data = response?.data ?? response;
     console.log(`搜索响应:`, JSON.stringify(data).slice(0, 500));
     const items = data?.data || data?.resultList || [];

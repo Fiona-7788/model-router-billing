@@ -775,3 +775,10 @@
 - targets: {"forms":[],"pages":[],"functions":["billing_proxy"],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"runtime":false,"other":[]}
 - followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
 - user: fengyujing
+## 2026-08-14T04:48:37.778Z
+
+- command: openxiangda resource publish
+- reason: 修复查询归档数据功能
+- targets: {"forms":[],"pages":[],"functions":["billing_proxy"],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
