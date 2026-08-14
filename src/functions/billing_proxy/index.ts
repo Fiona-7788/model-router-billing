@@ -859,8 +859,168 @@ async function getCallSources(ctx: any, params: any) {
 }
 
 /**
+ * 归档账单数据到本地表单存储
+ * 将指定日期的账单数据保存到平台表单，以便后续查询
+ * 表单 UUID: FORM_A839A016D0BF4BB5BE3CCF50F9891F1C
+ */
+const ARCHIVE_FORM_UUID = "FORM_A839A016D0BF4BB5BE3CCF50F9891F1C";
+
+async function archiveBillingData(ctx: any, params: any) {
+  const targetDate = params.date;
+  if (!targetDate) throw new Error("缺少 date 参数");
+  
+  // 获取该日期的完整 breakdown 数据
+  const [y, m, d] = targetDate.split("-").map(Number);
+  const beijingOffset = 8 * 3600;
+  const startTime = Date.UTC(y, m - 1, d) / 1000 - beijingOffset;
+  const endTime = startTime + 86400;
+  
+  const [allRows, parentMap] = await Promise.all([
+    fetchAllBreakdownRows(ctx, { startTime, endTime, granularity: "daily" }),
+    buildClientParentMap(ctx),
+  ]);
+  
+  // 归一化公司名
+  const normalizedRows: any[] = [];
+  for (const row of allRows) {
+    const clientId = String(row.clientId || "");
+    const clientName = row.clientName || "";
+    const { companyId: resolvedCompanyId, companyName } = resolveCompany(clientId, clientName, parentMap);
+    if (!ALLOWED_COMPANIES.has(companyName)) continue;
+    normalizedRows.push({
+      ...row,
+      company: companyName,
+      companyId: resolvedCompanyId,
+    });
+  }
+  
+  // 构建归档数据
+  const archiveData = {
+    date: targetDate,
+    recordCount: normalizedRows.length,
+    rows: normalizedRows,
+    archivedAt: new Date().toISOString(),
+  };
+  
+  // 保存到表单
+  const httpClient = ctx?.utils?.http;
+  if (!httpClient) throw new Error("ctx.utils.http 不可用");
+  
+  const appType = ctx?.appType || "APP_DC40389CBE164B18AFAF";
+  const platformUrl = ctx?.platformUrl || "https://yida.wisejob.cn";
+  const saveUrl = `${platformUrl}/service/${appType}/v1/form/saveFormData.json`;
+  
+  const formDataJson = JSON.stringify({
+    archive_date: startTime * 1000, // 毫秒时间戳
+    data_json: JSON.stringify(archiveData),
+    record_count: normalizedRows.length,
+    archive_type: params.archiveType || "daily",
+  });
+  
+  try {
+    const response = await httpClient.post(saveUrl, 
+      new URLSearchParams({
+        formUuid: ARCHIVE_FORM_UUID,
+        formDataJson,
+      }).toString(),
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      }
+    );
+    const data = response?.data ?? response;
+    console.log(`归档 ${targetDate} 成功: ${normalizedRows.length} 条记录`);
+    return {
+      success: true,
+      date: targetDate,
+      recordCount: normalizedRows.length,
+      formInstId: data?.formInstId || data?.data?.formInstId || null,
+    };
+  } catch (error: any) {
+    console.error(`归档 ${targetDate} 失败:`, error?.message);
+    // 即使存储失败，也返回归档数据供调用方使用
+    return {
+      success: false,
+      date: targetDate,
+      recordCount: normalizedRows.length,
+      error: error?.message || "存储失败",
+      data: archiveData,
+    };
+  }
+}
+
+/**
+ * 查询本地归档的账单数据
+ * 先检查表单中是否有指定日期的归档数据
+ */
+async function queryLocalBillingData(ctx: any, params: any) {
+  const targetDate = params.date;
+  if (!targetDate) throw new Error("缺少 date 参数");
+  
+  const httpClient = ctx?.utils?.http;
+  if (!httpClient) throw new Error("ctx.utils.http 不可用");
+  
+  const appType = ctx?.appType || "APP_DC40389CBE164B18AFAF";
+  const platformUrl = ctx?.platformUrl || "https://yida.wisejob.cn";
+  
+  // 计算目标日期的时间范围（用于搜索）
+  const [y, m, d] = targetDate.split("-").map(Number);
+  const beijingOffset = 8 * 3600;
+  const dayStart = Date.UTC(y, m - 1, d) / 1000 - beijingOffset;
+  const dayEnd = dayStart + 86400;
+  
+  const searchUrl = `${platformUrl}/service/${appType}/v1/form/advancedSearch.json`;
+  const searchParams = new URLSearchParams({
+    formUuid: ARCHIVE_FORM_UUID,
+    searchFieldJson: JSON.stringify({
+      archive_date: { "gte": dayStart * 1000, "lt": dayEnd * 1000 },
+      archive_type: params.archiveType || "daily",
+    }),
+    currentPage: "1",
+    pageSize: "10",
+  });
+  
+  try {
+    const response = await httpClient.get(`${searchUrl}?${searchParams.toString()}`, {
+      headers: { "Content-Type": "application/json" },
+    });
+    const data = response?.data ?? response;
+    const items = data?.data || [];
+    
+    if (items.length > 0) {
+      // 找到归档数据，解析并返回
+      const firstItem = items[0];
+      const formData = typeof firstItem.formData === "string" 
+        ? JSON.parse(firstItem.formData) 
+        : firstItem.formData || firstItem;
+      const dataJson = formData.data_json 
+        ? (typeof formData.data_json === "string" ? JSON.parse(formData.data_json) : formData.data_json)
+        : null;
+      
+      if (dataJson?.rows) {
+        console.log(`找到 ${targetDate} 的归档数据: ${dataJson.rows.length} 条`);
+        return {
+          found: true,
+          date: targetDate,
+          recordCount: dataJson.recordCount || dataJson.rows.length,
+          rows: dataJson.rows,
+          archivedAt: dataJson.archivedAt,
+        };
+      }
+    }
+    
+    console.log(`未找到 ${targetDate} 的归档数据`);
+    return { found: false, date: targetDate };
+  } catch (error: any) {
+    console.error(`查询归档数据失败:`, error?.message);
+    return { found: false, date: targetDate, error: error?.message };
+  }
+}
+
+/**
  * Function 入口
- * Updated: 2026-08-12 - Remove secretRefs, use hardcoded credentials temporarily
+ * Updated: 2026-08-14 - Add archive and query actions for local data storage
  */
 export default async function(ctx: any) {
   const input = ctx.input || {};
@@ -894,11 +1054,16 @@ export default async function(ctx: any) {
         result = await getCallSources(ctx, params);
         break;
       case "clientList":
-        // 返回公司级列表（散户归到父级公司）
         result = await getCompanyList(ctx);
         break;
+      case "archiveBillingData":
+        result = await archiveBillingData(ctx, params);
+        break;
+      case "queryLocalBillingData":
+        result = await queryLocalBillingData(ctx, params);
+        break;
       default:
-        throw new Error(`未知的 action: ${action}。支持的 actions: billingCostTabs, costOverview, costTrend, modelCostList, companyCostSummary, callSources, clientList [v3]`);
+        throw new Error(`未知的 action: ${action}。支持的 actions: billingCostTabs, costOverview, costTrend, modelCostList, companyCostSummary, callSources, clientList, archiveBillingData, queryLocalBillingData [v4]`);
     }
     
     return {
