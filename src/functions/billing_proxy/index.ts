@@ -1163,22 +1163,74 @@ async function queryLocalBillingData(ctx: any, params: any) {
     // 方式 3: ctx.resources 查询
     if ((!items || items.length === 0) && ctx?.resources) {
       const resMethods = Object.keys(ctx.resources).filter(k => typeof ctx.resources[k] === "function");
-      for (const method of resMethods) {
-        if (items && items.length > 0) break;
+      
+      // 优先使用 resolveForm 查询（归档时用的就是这个方法）
+      if (typeof ctx.resources.resolveForm === "function") {
         try {
-          queryAttempts.push(`resources.${method}`);
-          const result = await ctx.resources[method]({
-            resourceType: "billing_archive",
+          queryAttempts.push("resources.resolveForm(formUuid)");
+          const result = await ctx.resources.resolveForm({
+            formUuid: ARCHIVE_FORM_UUID,
           });
+          console.log(`resources.resolveForm 返回:`, JSON.stringify(result).slice(0, 500));
+          
+          // 处理不同的返回格式
           if (Array.isArray(result)) {
             items = result;
-            queryAttempts.push(`resources.${method}:OK`);
+            queryAttempts.push("resources.resolveForm:OK");
           } else if (result?.data && Array.isArray(result.data)) {
             items = result.data;
-            queryAttempts.push(`resources.${method}:OK`);
+            queryAttempts.push("resources.resolveForm:OK");
+          } else if (result?.resultList && Array.isArray(result.resultList)) {
+            items = result.resultList;
+            queryAttempts.push("resources.resolveForm:OK");
+          } else if (result?.items && Array.isArray(result.items)) {
+            items = result.items;
+            queryAttempts.push("resources.resolveForm:OK");
+          } else if (result?.records && Array.isArray(result.records)) {
+            items = result.records;
+            queryAttempts.push("resources.resolveForm:OK");
+          } else if (typeof result === "object" && result !== null) {
+            // 可能是单个对象或包含 formData 的对象
+            const formData = result.formData || result;
+            if (formData.archive_date) {
+              items = [result];
+              queryAttempts.push("resources.resolveForm:OK(single)");
+            } else {
+              queryAttempts.push("resources.resolveForm:noArray");
+            }
+          } else {
+            queryAttempts.push("resources.resolveForm:noArray");
           }
         } catch (e: any) {
-          queryAttempts.push(`resources.${method}:${e?.message || 'failed'}`);
+          queryAttempts.push(`resources.resolveForm:${e?.message || 'failed'}`);
+          console.log(`resources.resolveForm 失败: ${e?.message}`);
+        }
+      }
+      
+      // 尝试其他 resources 方法
+      if ((!items || items.length === 0)) {
+        for (const method of resMethods) {
+          if (method === "resolveForm") continue; // 已经试过了
+          if (items && items.length > 0) break;
+          try {
+            queryAttempts.push(`resources.${method}`);
+            const result = await ctx.resources[method]({
+              formUuid: ARCHIVE_FORM_UUID,
+              resourceType: "billing_archive",
+            });
+            if (Array.isArray(result)) {
+              items = result;
+              queryAttempts.push(`resources.${method}:OK`);
+            } else if (result?.data && Array.isArray(result.data)) {
+              items = result.data;
+              queryAttempts.push(`resources.${method}:OK`);
+            } else if (result?.resultList && Array.isArray(result.resultList)) {
+              items = result.resultList;
+              queryAttempts.push(`resources.${method}:OK`);
+            }
+          } catch (e: any) {
+            queryAttempts.push(`resources.${method}:${e?.message || 'failed'}`);
+          }
         }
       }
     }
