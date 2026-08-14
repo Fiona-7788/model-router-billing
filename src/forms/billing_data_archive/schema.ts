@@ -1,6 +1,8 @@
-import { defineForm } from "openxiangda/forms";
-
-export default defineForm({
+/**
+ * 账单数据归档表单 schema
+ * 用于存储每日从阿里云 Model Router 归档的账单数据
+ */
+export default {
   code: "billing_data_archive",
   name: "账单数据归档",
   formType: "receipt",
@@ -34,4 +36,4 @@ export default defineForm({
       ],
     },
   ],
-});
+};
