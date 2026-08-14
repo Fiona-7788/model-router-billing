@@ -480,10 +480,14 @@ export function BillingDashboardPage() {
                   try {
                     const result = await billingApi.archiveBillingData({ date: dayjs().format("YYYY-MM-DD") });
                     console.log("归档结果:", result);
-                    alert(`归档完成！\n日期: ${result?.date}\n记录数: ${result?.recordCount}\n成功: ${result?.success}`);
+                    if (result?.success) {
+                      alert(`归档完成！\n日期: ${result?.date}\n记录数: ${result?.recordCount}\n成功: ${result?.success}`);
+                    } else {
+                      alert(`归档失败！\n日期: ${result?.date}\n记录数: ${result?.recordCount}\n错误: ${result?.error || "未知错误"}`);
+                    }
                   } catch (error: any) {
                     console.error("归档失败:", error);
-                    alert(`归档失败: ${error?.message || "未知错误"}`);
+                    alert(`归档异常: ${error?.message || "未知错误"}`);
                   }
                 }}
               >
