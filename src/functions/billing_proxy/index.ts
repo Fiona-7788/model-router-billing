@@ -943,35 +943,29 @@ async function archiveBillingData(ctx: any, params: any) {
       }
     }
     
-    // 方式 2: ctx.platform.api 调用平台表单 API
-    if (!saveResult && ctx?.platform?.api) {
+    // 方式 2: 通过完整 URL 调用平台 API
+    if (!saveResult && ctx?.utils?.http) {
       try {
-        console.log(`尝试通过 ctx.platform.api 创建表单记录...`);
-        // 使用平台标准的表单数据创建端点
-        saveResult = await ctx.platform.api.request({
-          method: "POST",
-          path: "/api/form-data/create",
-          body: {
-            formUuid: ARCHIVE_FORM_UUID,
-            formData: formDataObj,
-          },
-        });
-        console.log(`ctx.platform.api 创建成功:`, JSON.stringify(saveResult).slice(0, 300));
+        const platformBaseUrl = "https://yida.wisejob.cn";
+        console.log(`尝试通过完整 URL 调用平台 API...`);
+        
+        // 尝试平台表单数据创建 API
+        saveResult = await ctx.utils.http.post(
+          `${platformBaseUrl}/api/v1/forms/${ARCHIVE_FORM_UUID}/data`,
+          { formData: formDataObj }
+        );
+        console.log(`平台 API 调用成功:`, JSON.stringify(saveResult).slice(0, 300));
       } catch (e: any) {
         lastError = e;
-        console.log(`ctx.platform.api 创建失败: ${e?.message}`);
+        console.log(`平台 API 调用失败: ${e?.message}`);
         
-        // 尝试另一个端点格式
+        // 尝试另一个端点
         try {
-          console.log(`尝试备用端点...`);
-          saveResult = await ctx.platform.api.request({
-            method: "POST",
-            path: "/api/v1/form-instances",
-            body: {
-              formUuid: ARCHIVE_FORM_UUID,
-              data: formDataObj,
-            },
-          });
+          console.log(`尝试备用端点 /api/form-data...`);
+          saveResult = await ctx.utils.http.post(
+            `https://yida.wisejob.cn/api/form-data/create`,
+            { formUuid: ARCHIVE_FORM_UUID, formData: formDataObj }
+          );
           console.log(`备用端点成功:`, JSON.stringify(saveResult).slice(0, 300));
         } catch (e2: any) {
           console.log(`备用端点也失败: ${e2?.message}`);
