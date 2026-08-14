@@ -1013,3 +1013,17 @@
 - targets: {"forms":["FORM_F52E3E6DA4874C5BB8B1E6B2FA41AD3A"],"pages":[],"resources":false,"runtime":false,"other":[]}
 - followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
 - user: fengyujing
+## 2026-08-14T07:34:08.143Z
+
+- command: openxiangda resource publish
+- reason: 采用线上最新基线进行function部署
+- targets: {"forms":[],"pages":[],"functions":["billing_proxy"],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-14T07:35:14.619Z
+
+- command: openxiangda runtime deploy
+- reason: 部署归档自动初始化功能
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing

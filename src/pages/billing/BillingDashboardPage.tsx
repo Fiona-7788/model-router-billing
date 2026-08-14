@@ -474,14 +474,30 @@ export function BillingDashboardPage() {
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-semibold text-slate-900">今日用量概况</h3>
-            <Button
-              type="primary"
-              icon={<Download size={16} />}
-              onClick={handleExport}
-              disabled={!modelCosts.length && !summary.length}
-            >
-              导出 Excel
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={async () => {
+                  try {
+                    const result = await billingApi.invokeBilling("archiveBillingData", { date: dayjs().format("YYYY-MM-DD") });
+                    console.log("归档结果:", result);
+                    alert(`归档完成！\n日期: ${result?.date}\n记录数: ${result?.recordCount}\n成功: ${result?.success}`);
+                  } catch (error: any) {
+                    console.error("归档失败:", error);
+                    alert(`归档失败: ${error?.message || "未知错误"}`);
+                  }
+                }}
+              >
+                测试归档今日数据
+              </Button>
+              <Button
+                type="primary"
+                icon={<Download size={16} />}
+                onClick={handleExport}
+                disabled={!modelCosts.length && !summary.length}
+              >
+                导出 Excel
+              </Button>
+            </div>
           </div>
 
           {overview ? (
