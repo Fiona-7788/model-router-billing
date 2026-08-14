@@ -1196,7 +1196,9 @@ async function queryLocalBillingData(ctx: any, params: any) {
               items = [result];
               queryAttempts.push("resources.resolveForm:OK(single)");
             } else {
-              queryAttempts.push("resources.resolveForm:noArray");
+              // 返回实际内容帮助调试
+              const resultStr = JSON.stringify(result).slice(0, 300);
+              queryAttempts.push(`resources.resolveForm:noArray|${resultStr}`);
             }
           } else {
             queryAttempts.push("resources.resolveForm:noArray");
