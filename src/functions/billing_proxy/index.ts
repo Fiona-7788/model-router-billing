@@ -849,8 +849,8 @@ async function getCallSources(ctx: any, params: any) {
   let totalCalls = 0;
   for (const r of normalizedRows) {
     totalCost += r.payableAmount || 0;
-    // 调用次数在 metricValues JSON 里
-    let vals: any = r.metricValues;
+    // 调用次数在 values JSON 里
+    let vals: any = r.values;
     if (typeof vals === "string") {
       try { vals = JSON.parse(vals); } catch { vals = {}; }
     }
