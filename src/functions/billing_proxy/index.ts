@@ -869,6 +869,18 @@ async function archiveBillingData(ctx: any, params: any) {
   const targetDate = params.date;
   if (!targetDate) throw new Error("缺少 date 参数");
   
+  // 调试：输出 ctx.form 和 ctx 上的可用方法
+  const ctxKeys = Object.keys(ctx || {});
+  const formKeys = Object.keys(ctx?.form || {});
+  const formMethods = formKeys.filter(k => typeof (ctx.form as any)[k] === "function");
+  console.log(`ctx 顶层 keys: ${ctxKeys.join(", ")}`);
+  console.log(`ctx.form keys: ${formKeys.join(", ")}`);
+  console.log(`ctx.form 方法: ${formMethods.join(", ")}`);
+  // 也检查 ctx.resources 和 ctx.platform
+  console.log(`ctx.resources keys: ${Object.keys(ctx?.resources || {}).join(", ")}`);
+  console.log(`ctx.platform keys: ${Object.keys(ctx?.platform || {}).join(", ")}`);
+  console.log(`ctx.app keys: ${Object.keys(ctx?.app || {}).join(", ")}`);
+  
   // 获取该日期的完整 breakdown 数据
   const [y, m, d] = targetDate.split("-").map(Number);
   const beijingOffset = 8 * 3600;
