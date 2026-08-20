@@ -1187,8 +1187,40 @@ async function queryLocalBillingData(ctx: any, params: any) {
   try {
     let items: any[] = [];
     
-    // 方式 1: ctx.form.queryMany
-    if (ctx?.form && typeof ctx.form.queryMany === "function") {
+    // 方式 1 (优先): ctx.variables 持久化存储查询
+    if (ctx?.variables && typeof ctx.variables.list === 'function') {
+      try {
+        const allVars = await ctx.variables.list();
+        queryAttempts.push(`vars.list:type=${typeof allVars},count=${(allVars||[]).length}`);
+        const varItems: any[] = [];
+        for (const v of (allVars || [])) {
+          const key = typeof v === 'string' ? v : v?.key || v?.name;
+          if (key && key.startsWith('billing_archive_')) {
+            const val = await ctx.variables.get(key);
+            if (val) {
+              try {
+                const parsed = typeof val === 'string' ? JSON.parse(val) : val;
+                varItems.push({ formData: parsed, formInstId: key });
+              } catch { varItems.push({ formData: val, formInstId: key }); }
+            }
+          }
+        }
+        if (varItems.length > 0) {
+          items = varItems;
+          queryAttempts.push("vars:OK");
+          console.log(`变量存储查询到 ${varItems.length} 条记录`);
+        } else {
+          queryAttempts.push(`vars:empty`);
+        }
+      } catch (e: any) {
+        queryAttempts.push(`vars:${e?.message || 'err'}`);
+      }
+    } else {
+      queryAttempts.push(`vars:N/A(type=${typeof ctx?.variables})`);
+    }
+    
+    // 方式 2: ctx.form.queryMany (仅在 variables 无数据时尝试)
+    if ((!items || items.length === 0) && ctx?.form && typeof ctx.form.queryMany === "function") {
       try {
         queryAttempts.push("form.queryMany");
         const searchResult = await ctx.form.queryMany({
@@ -1198,14 +1230,12 @@ async function queryLocalBillingData(ctx: any, params: any) {
         });
         items = searchResult?.data || searchResult?.resultList || searchResult || [];
         if (Array.isArray(items) && items.length > 0) {
-          queryAttempts.push("form.queryMany:OK");
-          console.log(`ctx.form.queryMany 返回: ${items.length} 条`);
+          queryAttempts.push("form:OK");
         } else {
-          queryAttempts.push(`form.queryMany:empty`);
+          queryAttempts.push(`form:empty`);
         }
       } catch (e: any) {
-        queryAttempts.push(`form.queryMany:${e?.message || 'failed'}`);
-        console.log(`ctx.form.queryMany 失败: ${e?.message}`);
+        queryAttempts.push(`form:${e?.message?.slice(0,30) || 'err'}`);
       }
     }
     
@@ -1395,42 +1425,6 @@ async function queryLocalBillingData(ctx: any, params: any) {
           queryAttempts.push(`http:${ep.url}:${e?.message || 'failed'}`);
           console.log(`http:${ep.url} 失败:`, e?.message);
         }
-      }
-    }
-    
-    // 方式 4.5: ctx.variables 持久化存储查询（临时方案）
-    if (!items || items.length === 0) {
-      if (ctx?.variables && typeof ctx.variables.list === 'function') {
-        try {
-          const allVars = await ctx.variables.list();
-          queryAttempts.push(`variables.list:type=${typeof allVars}`);
-          const varItems: any[] = [];
-          for (const v of (allVars || [])) {
-            const key = typeof v === 'string' ? v : v?.key || v?.name;
-            if (key && key.startsWith('billing_archive_')) {
-              const val = await ctx.variables.get(key);
-              if (val) {
-                try {
-                  const parsed = typeof val === 'string' ? JSON.parse(val) : val;
-                  varItems.push({ formData: parsed, formInstId: key });
-                } catch { varItems.push({ formData: val, formInstId: key }); }
-              }
-            }
-          }
-          if (varItems.length > 0) {
-            items = varItems;
-            queryAttempts.push("variables.list:OK");
-            console.log(`变量存储查询到 ${varItems.length} 条记录`);
-          } else {
-            queryAttempts.push(`variables.list:empty(${(allVars||[]).length} vars)`);
-          }
-        } catch (e: any) {
-          queryAttempts.push(`variables.list:${e?.message || 'failed'}`);
-          console.log(`variables.list 失败: ${e?.message}`);
-        }
-      } else {
-        queryAttempts.push(`variables.list:API_NOT_AVAILABLE(ctx.variables=${typeof ctx?.variables})`);
-        console.log(`ctx.variables 不可用: ${typeof ctx?.variables}, methods: ${ctx?.variables ? Object.keys(ctx.variables).join(',') : 'N/A'}`);
       }
     }
     
