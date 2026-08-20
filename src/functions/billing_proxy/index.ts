@@ -932,28 +932,20 @@ async function archiveBillingData(ctx: any, params: any) {
     
     let lastError: any = null;
     
-    // 方式 1: 尝试通过 platform.api 同步表单 schema（初始化数据表）
-    if (ctx?.platform?.api) {
-      const syncEndpoints = [
-        { method: "POST" as const, path: `/forms/${ARCHIVE_FORM_UUID}/schema/sync`, body: {} },
-        { method: "POST" as const, path: `/api/v1/forms/${ARCHIVE_FORM_UUID}/sync-schema`, body: {} },
-        { method: "POST" as const, path: `/form/${ARCHIVE_FORM_UUID}/init-table`, body: {} },
-        { method: "POST" as const, path: `/api/form-schema/sync`, body: { formUuid: ARCHIVE_FORM_UUID } },
-        { method: "POST" as const, path: `/api/v1/form/${ARCHIVE_FORM_UUID}/init`, body: {} },
-        { method: "POST" as const, path: `/api/v1/form-data/init`, body: { formUuid: ARCHIVE_FORM_UUID } },
-        { method: "POST" as const, path: `/service/api/v1/form/${ARCHIVE_FORM_UUID}/sync-schema`, body: {} },
-      ];
-      for (const ep of syncEndpoints) {
-        try {
-          attempts.push(`sync:${ep.path}`);
-          const syncResult = await ctx.platform.api.request(ep);
-          attempts.push(`sync:${ep.path}:OK`);
-          console.log(`Schema sync via ${ep.path} success:`, JSON.stringify(syncResult).slice(0, 200));
-          break;
-        } catch (e: any) {
-          attempts.push(`sync:${ep.path}:${e?.message || 'failed'}`);
-          console.log(`Schema sync via ${ep.path} failed: ${e?.message}`);
-        }
+    // 方式 1 (优先): ctx.methods.createOneData
+    if (ctx?.methods && typeof ctx.methods.createOneData === "function") {
+      try {
+        attempts.push("methods.createOneData");
+        saveResult = await ctx.methods.createOneData({
+          formUuid: ARCHIVE_FORM_UUID,
+          formData: formDataObj,
+        });
+        attempts.push("methods.createOneData:OK");
+        console.log(`ctx.methods.createOneData 成功`);
+      } catch (e: any) {
+        lastError = e;
+        attempts.push(`methods.createOneData:${e?.message?.slice(0, 50) || 'failed'}`);
+        console.log(`ctx.methods.createOneData 失败: ${e?.message}`);
       }
     }
     
@@ -1093,30 +1085,8 @@ async function archiveBillingData(ctx: any, params: any) {
       }
     }
     
-    // 方式 6: ctx.variables 持久化存储（临时方案）
-    if (!saveResult && ctx?.variables) {
-      try {
-        const varKey = `billing_archive_${targetDate}`;
-        await ctx.variables.set(varKey, JSON.stringify(formDataObj));
-        saveResult = { formInstId: varKey, variablesStore: true };
-        attempts.push("variables.set:OK");
-        console.log(`变量存储成功：${varKey}`);
-      } catch (e: any) {
-        attempts.push(`variables.set:${e?.message || 'failed'}`);
-        console.log(`变量存储失败: ${e?.message}`);
-        // 回退到内存存储
-        try {
-          const key = `archive_${targetDate}`;
-          memoryStore.set(key, formDataObj);
-          saveResult = { formInstId: key, memoryStore: true };
-          attempts.push("memoryStore:OK");
-          console.log(`内存存储成功：${key}`);
-        } catch (e2: any) {
-          attempts.push(`memoryStore:${e2?.message || 'failed'}`);
-        }
-      }
-    } else if (!saveResult) {
-      // 回退到内存存储
+    // 回退到内存存储（临时方案）
+    if (!saveResult) {
       try {
         const key = `archive_${targetDate}`;
         memoryStore.set(key, formDataObj);
@@ -1187,69 +1157,26 @@ async function queryLocalBillingData(ctx: any, params: any) {
   try {
     let items: any[] = [];
     
-    // 方式 1 (优先): ctx.variables 持久化存储查询
-    if (ctx?.variables && typeof ctx.variables === 'object') {
-      const varMethods = Object.keys(ctx.variables).filter(k => typeof ctx.variables[k] === 'function');
-      queryAttempts.push(`vars:methods=[${varMethods.join(',')}],keys=[${Object.keys(ctx.variables).join(',')}]`);
-      console.log('ctx.variables methods:', varMethods, 'all keys:', Object.keys(ctx.variables));
-      
-      // 尝试用 get 方法读取已知的归档键
-      const tryKeys = [`billing_archive_${targetDate}`, `archive_${targetDate}`];
-      const varItems: any[] = [];
-      for (const tryKey of tryKeys) {
-        if (typeof ctx.variables.get === 'function') {
-          try {
-            const val = await ctx.variables.get(tryKey);
-            if (val) {
-              try {
-                const parsed = typeof val === 'string' ? JSON.parse(val) : val;
-                varItems.push({ formData: parsed, formInstId: tryKey });
-              } catch { varItems.push({ formData: val, formInstId: tryKey }); }
-            }
-          } catch (e: any) {
-            queryAttempts.push(`vars.get(${tryKey}):${e?.message?.slice(0,20) || 'err'}`);
-          }
+    // 方式 1 (优先): ctx.methods.queryManyData
+    if (ctx?.methods && typeof ctx.methods.queryManyData === "function") {
+      try {
+        queryAttempts.push("methods.queryManyData");
+        const searchResult = await ctx.methods.queryManyData({
+          formUuid: ARCHIVE_FORM_UUID,
+          currentPage: 1,
+          pageSize: 100,
+        });
+        items = searchResult?.data || searchResult?.resultList || searchResult || [];
+        if (Array.isArray(items) && items.length > 0) {
+          queryAttempts.push("methods.queryManyData:OK");
+          console.log(`ctx.methods.queryManyData 返回: ${items.length} 条`);
+        } else {
+          queryAttempts.push(`methods.queryManyData:empty`);
         }
+      } catch (e: any) {
+        queryAttempts.push(`methods.queryManyData:${e?.message?.slice(0, 50) || 'err'}`);
+        console.log(`ctx.methods.queryManyData 失败: ${e?.message}`);
       }
-      
-      // 如果有 list/all/keys 方法，尝试列出所有变量
-      if (varItems.length === 0) {
-        for (const listMethod of ['list', 'all', 'keys', 'getKeys', 'getAll']) {
-          if (typeof ctx.variables[listMethod] === 'function') {
-            try {
-              const allVars = await ctx.variables[listMethod]();
-              queryAttempts.push(`vars.${listMethod}:type=${typeof allVars}`);
-              for (const v of (allVars || [])) {
-                const key = typeof v === 'string' ? v : v?.key || v?.name;
-                if (key && key.startsWith('billing_archive_')) {
-                  if (typeof ctx.variables.get === 'function') {
-                    const val = await ctx.variables.get(key);
-                    if (val) {
-                      try {
-                        const parsed = typeof val === 'string' ? JSON.parse(val) : val;
-                        varItems.push({ formData: parsed, formInstId: key });
-                      } catch { varItems.push({ formData: val, formInstId: key }); }
-                    }
-                  }
-                }
-              }
-              if (varItems.length > 0) break;
-            } catch (e: any) {
-              queryAttempts.push(`vars.${listMethod}:${e?.message?.slice(0,20) || 'err'}`);
-            }
-          }
-        }
-      }
-      
-      if (varItems.length > 0) {
-        items = varItems;
-        queryAttempts.push("vars:OK");
-        console.log(`变量存储查询到 ${varItems.length} 条记录`);
-      } else {
-        queryAttempts.push(`vars:noData`);
-      }
-    } else {
-      queryAttempts.push(`vars:N/A(type=${typeof ctx?.variables})`);
     }
     
     // 方式 2: ctx.form.queryMany (仅在 variables 无数据时尝试)
