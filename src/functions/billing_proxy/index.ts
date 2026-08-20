@@ -1574,18 +1574,27 @@ export default async function(ctx: any) {
         break;
       case "diagnose": {
         const ctxKeys = Object.keys(ctx || {});
-        const ctxMethods: Record<string, string[]> = {};
+        const ctxDetail: Record<string, any> = {};
         for (const key of ctxKeys) {
           const val = ctx[key];
-          if (val && typeof val === 'object') {
-            ctxMethods[key] = Object.keys(val).filter(k => typeof val[k] === 'function');
+          if (val && typeof val === 'object' && !Array.isArray(val)) {
+            const methods = Object.keys(val).filter(k => typeof val[k] === 'function');
+            const props = Object.keys(val).filter(k => typeof val[k] !== 'function');
+            ctxDetail[key] = { methods, props: props.slice(0, 20) };
+            // 深入一层：检查方法的原型
+            for (const m of methods.slice(0, 5)) {
+              try {
+                const fnStr = val[m].toString();
+                ctxDetail[key][`${m}_sig`] = fnStr.slice(0, 80);
+              } catch { ctxDetail[key][`${m}_sig`] = 'N/A'; }
+            }
           } else if (typeof val === 'function') {
-            ctxMethods[key] = ['(function)'];
+            ctxDetail[key] = { type: 'function', sig: val.toString().slice(0, 80) };
           } else {
-            ctxMethods[key] = [`(type=${typeof val})`];
+            ctxDetail[key] = { type: typeof val, value: val === null ? 'null' : String(val).slice(0, 100) };
           }
         }
-        result = { ctxKeys, ctxMethods };
+        result = { ctxKeys, ctxDetail };
         break;
       }
       default:
