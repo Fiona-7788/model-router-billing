@@ -9,6 +9,13 @@
     "runtimeMode": "trusted_node",
     "runtimeContractVersion": "trusted_node_v2",
     "sourceType": "inline",
+    "resourceBindings": {
+      "forms": [
+        "FORM_A839A016D0BF4BB5BE3CCF50F9891F1C"
+      ],
+      "dataViews": [],
+      "connectors": []
+    },
     "runtimeInvoke": {
       "audience": {
         "type": "authenticated"
