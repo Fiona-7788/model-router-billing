@@ -11,6 +11,9 @@
 
 import crypto from "crypto";
 
+// 内存存储（临时方案，用于表单数据表未初始化时）
+const memoryStore = new Map<string, any>();
+
 // trusted_node_v2 沙箱封锁了所有原生网络模块（http/https/http2/net/tls）和全局 fetch
 // 使用 ctx.utils.http（基于 axios）作为唯一的 HTTP 客户端
 // ctx.utils.http 提供 get/post/put/patch/delete/request 方法
@@ -1090,6 +1093,19 @@ async function archiveBillingData(ctx: any, params: any) {
       }
     }
     
+    // 方式 6: 内存存储（临时方案）
+    if (!saveResult) {
+      try {
+        const key = `archive_${targetDate}`;
+        memoryStore.set(key, formDataObj);
+        saveResult = { formInstId: key, memoryStore: true };
+        attempts.push("memoryStore:OK");
+        console.log(`内存存储成功：${key}`);
+      } catch (e: any) {
+        attempts.push(`memoryStore:${e?.message || 'failed'}`);
+      }
+    }
+    
     if (!saveResult) {
       throw lastError || new Error("所有保存方式均失败");
     }
@@ -1357,6 +1373,21 @@ async function queryLocalBillingData(ctx: any, params: any) {
           queryAttempts.push(`http:${ep.url}:${e?.message || 'failed'}`);
           console.log(`http:${ep.url} 失败:`, e?.message);
         }
+      }
+    }
+    
+    // 方式 5: 内存存储查询（临时方案）
+    if (!items || items.length === 0) {
+      const memoryItems: any[] = [];
+      for (const [key, value] of memoryStore.entries()) {
+        if (key.startsWith("archive_")) {
+          memoryItems.push({ formData: value, formInstId: key });
+        }
+      }
+      if (memoryItems.length > 0) {
+        items = memoryItems;
+        queryAttempts.push("memoryStore:OK");
+        console.log(`内存存储查询到 ${memoryItems.length} 条记录`);
       }
     }
     

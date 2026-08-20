@@ -1426,3 +1426,10 @@
 - targets: {"forms":[],"pages":[],"functions":[],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":true,"runtime":false,"other":[]}
 - followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
 - user: fengyujing
+## 2026-08-20T06:33:27.976Z
+
+- command: openxiangda resource publish
+- reason: 采用线上最新基线
+- targets: {"forms":[],"pages":[],"functions":[],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":true,"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
