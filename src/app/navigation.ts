@@ -1,5 +1,5 @@
 import type { ComponentType, SVGProps } from "react";
-import { BriefcaseBusiness, DollarSign, FileSearch, Home, ShieldCheck } from "lucide-react";
+import { BriefcaseBusiness, Database, DollarSign, FileSearch, Home, ShieldCheck } from "lucide-react";
 
 export type StarterNavigationItem = {
   code?: string;
@@ -48,6 +48,13 @@ export function buildStarterAdminNavigation({
           name: "调取来源",
           path: viewPath(appType, "admin/billing/call-sources"),
           routeCode: "billing.call_sources",
+        },
+        {
+          code: "form_management",
+          icon: Database,
+          name: "表单管理",
+          path: viewPath(appType, "admin/form-management"),
+          routeCode: "admin.form_management",
         },
       ],
     },

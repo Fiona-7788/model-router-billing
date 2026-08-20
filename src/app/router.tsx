@@ -55,6 +55,11 @@ const CallSourcesPage = lazy(() =>
     default: module.CallSourcesPage,
   })),
 );
+const FormManagementPage = lazy(() =>
+  import("@/pages/admin/FormManagementPage").then(module => ({
+    default: module.FormManagementPage,
+  })),
+);
 
 const routeElement = (element: ReactNode) => (
   <Suspense
@@ -146,6 +151,7 @@ export const router = createBrowserRouter([
           { path: "login-logs", element: routeElement(<LoginLogPage />) },
           { path: "billing", element: routeElement(<BillingDashboardPage />) },
           { path: "billing/call-sources", element: routeElement(<CallSourcesPage />) },
+          { path: "form-management", element: routeElement(<FormManagementPage />) },
           { path: "process/:formUuid/:formInstId", element: routeElement(<FormRoutePage mode="process" />) },
           { path: "*", element: <NotFoundPage /> },
         ],

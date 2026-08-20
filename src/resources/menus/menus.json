@@ -17,6 +17,15 @@
       "path": "/view/:appType/admin/billing/call-sources",
       "icon": "FileSearch",
       "sortOrder": 6
+    },
+    {
+      "code": "form_management",
+      "name": "表单管理",
+      "type": "nav",
+      "routeCode": "admin.form_management",
+      "path": "/view/:appType/admin/form-management",
+      "icon": "Database",
+      "sortOrder": 7
     }
   ]
 }

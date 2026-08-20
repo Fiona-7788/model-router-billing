@@ -1,0 +1,155 @@
+import { useState } from "react";
+import { Database, ExternalLink, RefreshCw } from "lucide-react";
+
+const APP_TYPE = "APP_DC40389CBE164B18AFAF";
+const ARCHIVE_FORM_UUID = "FORM_A839A016D0BF4BB5BE3CCF50F9891F1C";
+
+export function FormManagementPage() {
+  const [status, setStatus] = useState<"idle" | "checking" | "success" | "error">("idle");
+  const [message, setMessage] = useState("");
+
+  const platformFormUrl = `/view/${APP_TYPE}/admin/forms/${ARCHIVE_FORM_UUID}`;
+  const platformFormListUrl = `/view/${APP_TYPE}/admin/forms`;
+
+  const checkFormStatus = async () => {
+    setStatus("checking");
+    setMessage("正在检查表单状态...");
+    
+    try {
+      // 调用归档函数测试表单是否可用
+      const response = await fetch("/service/api/v1/function/billing_proxy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "archiveBillingData",
+          params: { date: new Date().toISOString().split("T")[0], testOnly: true },
+        }),
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setStatus("success");
+        setMessage("✅ 表单数据表已初始化，可以正常使用归档功能！");
+      } else {
+        setStatus("error");
+        setMessage(`❌ 表单数据表未初始化。错误：${result.error || result.message || "未知错误"}`);
+      }
+    } catch (error: any) {
+      setStatus("error");
+      setMessage(`❌ 检查失败：${error.message}`);
+    }
+  };
+
+  return (
+    <div className="p-6 max-w-4xl mx-auto">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+          <Database className="w-6 h-6" />
+          表单管理
+        </h1>
+        <p className="text-gray-600 mt-2">管理账单归档表单，初始化数据表</p>
+      </div>
+
+      <div className="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 className="text-lg font-semibold mb-4">账单数据归档表单</h2>
+        
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg">
+            <Database className="w-5 h-5 text-blue-600 mt-0.5" />
+            <div className="flex-1">
+              <h3 className="font-medium text-blue-900">表单信息</h3>
+              <p className="text-sm text-blue-700 mt-1">
+                <strong>表单名称：</strong>账单数据归档
+              </p>
+              <p className="text-sm text-blue-700">
+                <strong>表单 UUID：</strong>{ARCHIVE_FORM_UUID}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3 p-4 bg-yellow-50 rounded-lg">
+            <RefreshCw className="w-5 h-5 text-yellow-600 mt-0.5" />
+            <div className="flex-1">
+              <h3 className="font-medium text-yellow-900">初始化数据表</h3>
+              <p className="text-sm text-yellow-700 mt-1">
+                首次使用归档功能前，需要通过平台 UI 初始化表单数据表。
+                点击下方按钮打开平台表单管理页面，平台会自动初始化数据表。
+              </p>
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <a
+              href={platformFormUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <ExternalLink className="w-4 h-4" />
+              打开表单管理页面
+            </a>
+            
+            <button
+              onClick={checkFormStatus}
+              disabled={status === "checking"}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${status === "checking" ? "animate-spin" : ""}`} />
+              {status === "checking" ? "检查中..." : "检查表单状态"}
+            </button>
+          </div>
+
+          {message && (
+            <div
+              className={`p-4 rounded-lg ${
+                status === "success"
+                  ? "bg-green-50 text-green-900"
+                  : status === "error"
+                  ? "bg-red-50 text-red-900"
+                  : "bg-gray-50 text-gray-900"
+              }`}
+            >
+              {message}
+            </div>
+          )}
+
+          <div className="border-t pt-4 mt-4">
+            <h3 className="font-medium text-gray-900 mb-2">使用说明</h3>
+            <ol className="list-decimal list-inside space-y-2 text-sm text-gray-700">
+              <li>点击「打开表单管理页面」按钮，在新标签页打开平台表单管理界面</li>
+              <li>平台会自动初始化表单的数据表（首次打开时）</li>
+              <li>初始化完成后，返回此页面点击「检查表单状态」验证</li>
+              <li>状态显示成功后，即可正常使用账单归档功能</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-lg shadow p-6">
+        <h2 className="text-lg font-semibold mb-4">快速链接</h2>
+        <div className="space-y-2">
+          <a
+            href={platformFormUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            <div className="font-medium text-gray-900">账单数据归档表单</div>
+            <div className="text-sm text-gray-600 mt-1">直接打开归档表单管理页面</div>
+          </a>
+          
+          <a
+            href={platformFormListUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            <div className="font-medium text-gray-900">所有表单列表</div>
+            <div className="text-sm text-gray-600 mt-1">查看应用中所有表单</div>
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
