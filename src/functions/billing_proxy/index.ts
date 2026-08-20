@@ -879,9 +879,9 @@ async function getCallSources(ctx: any, params: any) {
 /**
  * 归档账单数据到本地表单存储
  * 将指定日期的账单数据保存到平台表单，以便后续查询
- * 表单 UUID: FORM_A839A016D0BF4BB5BE3CCF50F9891F1C
+ * 表单 UUID: FORM_4305FA38D1C64C2EB9D45704C314F490 (账单归档V2，通过平台UI创建，数据表已初始化)
  */
-const ARCHIVE_FORM_UUID = "FORM_A839A016D0BF4BB5BE3CCF50F9891F1C";
+const ARCHIVE_FORM_UUID = "FORM_4305FA38D1C64C2EB9D45704C314F490";
 
 async function archiveBillingData(ctx: any, params: any) {
   const targetDate = params.date;
