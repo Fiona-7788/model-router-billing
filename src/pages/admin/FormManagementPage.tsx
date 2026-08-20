@@ -3,6 +3,7 @@ import { Database, ExternalLink, RefreshCw, Stethoscope } from "lucide-react";
 
 const APP_TYPE = "APP_DC40389CBE164B18AFAF";
 const ARCHIVE_FORM_UUID = "FORM_A839A016D0BF4BB5BE3CCF50F9891F1C";
+const FUNCTION_URL = `/service/openxiangda-api/v1/apps/${APP_TYPE}/functions/billing_proxy/invoke`;
 
 export function FormManagementPage() {
   const [status, setStatus] = useState<"idle" | "checking" | "success" | "error">("idle");
@@ -18,12 +19,14 @@ export function FormManagementPage() {
     setDiagLoading(true);
     setDiagResult(null);
     try {
-      const response = await fetch("/service/api/v1/function/billing_proxy", {
+      const response = await fetch(FUNCTION_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "diagnose", params: {} }),
+        credentials: "include",
+        body: JSON.stringify({ input: { action: "diagnose", params: {} } }),
       });
-      const result = await response.json();
+      const raw = await response.json();
+      const result = raw.output ?? raw.data?.output ?? raw.data?.result ?? raw;
       setDiagResult(result);
     } catch (error: any) {
       setDiagResult({ success: false, error: error.message });
@@ -37,16 +40,15 @@ export function FormManagementPage() {
     
     try {
       // 调用归档函数测试表单是否可用
-      const response = await fetch("/service/api/v1/function/billing_proxy", {
+      const response = await fetch(FUNCTION_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "archiveBillingData",
-          params: { date: new Date().toISOString().split("T")[0], testOnly: true },
-        }),
+        credentials: "include",
+        body: JSON.stringify({ input: { action: "archiveBillingData", params: { date: new Date().toISOString().split("T")[0], testOnly: true } } }),
       });
       
-      const result = await response.json();
+      const raw = await response.json();
+      const result = raw.output ?? raw.data?.output ?? raw.data?.result ?? raw;
       
       if (result.success) {
         setStatus("success");

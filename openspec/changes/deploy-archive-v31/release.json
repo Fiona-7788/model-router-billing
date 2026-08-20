@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "openxiangda-sdd-v2",
+  "changeId": "deploy-archive-v31",
+  "mainlinePolicy": "publish-from-main-v1",
+  "releaseSourceRevision": {
+    "repo": "sha256:6342604c033e10a19edc95e861a4c0d8b745e6302f6345c21dfcd1eec3698500",
+    "baseCommit": "92f900763e7c3affc4c76ee2600e0e229536fa69",
+    "treeHash": "4b3472ae639d2e77dcdf25893a87458dc71b89fb",
+    "branch": "main",
+    "remoteName": "origin",
+    "remoteUrlHash": "sha256:ef44ed468b235a0845b38995ceb0b0da4b613b88b2430c68fd8f40d3fa500b88",
+    "mainBranch": "main",
+    "mainTipCommit": "92f900763e7c3affc4c76ee2600e0e229536fa69",
+    "capturedAt": "2026-08-20T09:19:03.803Z"
+  }
+}
