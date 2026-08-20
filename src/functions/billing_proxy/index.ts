@@ -1093,8 +1093,30 @@ async function archiveBillingData(ctx: any, params: any) {
       }
     }
     
-    // 方式 6: 内存存储（临时方案）
-    if (!saveResult) {
+    // 方式 6: ctx.variables 持久化存储（临时方案）
+    if (!saveResult && ctx?.variables) {
+      try {
+        const varKey = `billing_archive_${targetDate}`;
+        await ctx.variables.set(varKey, JSON.stringify(formDataObj));
+        saveResult = { formInstId: varKey, variablesStore: true };
+        attempts.push("variables.set:OK");
+        console.log(`变量存储成功：${varKey}`);
+      } catch (e: any) {
+        attempts.push(`variables.set:${e?.message || 'failed'}`);
+        console.log(`变量存储失败: ${e?.message}`);
+        // 回退到内存存储
+        try {
+          const key = `archive_${targetDate}`;
+          memoryStore.set(key, formDataObj);
+          saveResult = { formInstId: key, memoryStore: true };
+          attempts.push("memoryStore:OK");
+          console.log(`内存存储成功：${key}`);
+        } catch (e2: any) {
+          attempts.push(`memoryStore:${e2?.message || 'failed'}`);
+        }
+      }
+    } else if (!saveResult) {
+      // 回退到内存存储
       try {
         const key = `archive_${targetDate}`;
         memoryStore.set(key, formDataObj);
@@ -1373,6 +1395,33 @@ async function queryLocalBillingData(ctx: any, params: any) {
           queryAttempts.push(`http:${ep.url}:${e?.message || 'failed'}`);
           console.log(`http:${ep.url} 失败:`, e?.message);
         }
+      }
+    }
+    
+    // 方式 4.5: ctx.variables 持久化存储查询（临时方案）
+    if (!items || items.length === 0) {
+      try {
+        const allVars = await ctx.variables.list();
+        const varItems: any[] = [];
+        for (const v of (allVars || [])) {
+          const key = typeof v === 'string' ? v : v?.key || v?.name;
+          if (key && key.startsWith('billing_archive_')) {
+            const val = await ctx.variables.get(key);
+            if (val) {
+              try {
+                const parsed = typeof val === 'string' ? JSON.parse(val) : val;
+                varItems.push({ formData: parsed, formInstId: key });
+              } catch { varItems.push({ formData: val, formInstId: key }); }
+            }
+          }
+        }
+        if (varItems.length > 0) {
+          items = varItems;
+          queryAttempts.push("variables.list:OK");
+          console.log(`变量存储查询到 ${varItems.length} 条记录`);
+        }
+      } catch (e: any) {
+        queryAttempts.push(`variables.list:${e?.message || 'failed'}`);
       }
     }
     
