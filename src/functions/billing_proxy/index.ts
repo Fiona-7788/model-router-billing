@@ -1572,6 +1572,22 @@ export default async function(ctx: any) {
       case "queryLocalBillingData":
         result = await queryLocalBillingData(ctx, params);
         break;
+      case "diagnose": {
+        const ctxKeys = Object.keys(ctx || {});
+        const ctxMethods: Record<string, string[]> = {};
+        for (const key of ctxKeys) {
+          const val = ctx[key];
+          if (val && typeof val === 'object') {
+            ctxMethods[key] = Object.keys(val).filter(k => typeof val[k] === 'function');
+          } else if (typeof val === 'function') {
+            ctxMethods[key] = ['(function)'];
+          } else {
+            ctxMethods[key] = [`(type=${typeof val})`];
+          }
+        }
+        result = { ctxKeys, ctxMethods };
+        break;
+      }
       default:
         throw new Error(`未知的 action: ${action}。支持的 actions: billingCostTabs, costOverview, costTrend, modelCostList, companyCostSummary, callSources, clientList, archiveBillingData, queryLocalBillingData [v4]`);
     }
