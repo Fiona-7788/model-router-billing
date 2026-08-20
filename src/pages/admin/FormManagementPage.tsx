@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Database, ExternalLink, RefreshCw } from "lucide-react";
+import { Database, ExternalLink, RefreshCw, Stethoscope } from "lucide-react";
 
 const APP_TYPE = "APP_DC40389CBE164B18AFAF";
 const ARCHIVE_FORM_UUID = "FORM_A839A016D0BF4BB5BE3CCF50F9891F1C";
@@ -7,10 +7,29 @@ const ARCHIVE_FORM_UUID = "FORM_A839A016D0BF4BB5BE3CCF50F9891F1C";
 export function FormManagementPage() {
   const [status, setStatus] = useState<"idle" | "checking" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
+  const [diagResult, setDiagResult] = useState<any>(null);
+  const [diagLoading, setDiagLoading] = useState(false);
 
   // 平台原生表单管理 URL（不是 SPA 路由）
   const platformFormUrl = `/service/admin/forms/${ARCHIVE_FORM_UUID}`;
   const platformFormListUrl = `/service/admin/forms`;
+
+  const runDiagnose = async () => {
+    setDiagLoading(true);
+    setDiagResult(null);
+    try {
+      const response = await fetch("/service/api/v1/function/billing_proxy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "diagnose", params: {} }),
+      });
+      const result = await response.json();
+      setDiagResult(result);
+    } catch (error: any) {
+      setDiagResult({ success: false, error: error.message });
+    }
+    setDiagLoading(false);
+  };
 
   const checkFormStatus = async () => {
     setStatus("checking");
@@ -80,7 +99,7 @@ export function FormManagementPage() {
             </div>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-wrap">
             <a
               href={platformFormUrl}
               target="_blank"
@@ -99,7 +118,25 @@ export function FormManagementPage() {
               <RefreshCw className={`w-4 h-4 ${status === "checking" ? "animate-spin" : ""}`} />
               {status === "checking" ? "检查中..." : "检查表单状态"}
             </button>
+
+            <button
+              onClick={runDiagnose}
+              disabled={diagLoading}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
+            >
+              <Stethoscope className={`w-4 h-4 ${diagLoading ? "animate-spin" : ""}`} />
+              {diagLoading ? "诊断中..." : "诊断 ctx API"}
+            </button>
           </div>
+
+          {diagResult && (
+            <div className="p-4 rounded-lg bg-purple-50 text-purple-900">
+              <h4 className="font-medium mb-2">诊断结果：</h4>
+              <pre className="text-xs overflow-auto max-h-60 bg-white p-3 rounded border">
+                {JSON.stringify(diagResult, null, 2)}
+              </pre>
+            </div>
+          )}
 
           {message && (
             <div
