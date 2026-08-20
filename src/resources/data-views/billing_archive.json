@@ -5,10 +5,10 @@
     "formUuid": "FORM_A839A016D0BF4BB5BE3CCF50F9891F1C"
   },
   "select": [
-    { "field": "archive_date", "alias": "archive_date" },
-    { "field": "data_json", "alias": "data_json" },
-    { "field": "record_count", "alias": "record_count" },
-    { "field": "archive_type", "alias": "archive_type" }
+    { "field": "archive_date" },
+    { "field": "data_json" },
+    { "field": "record_count" },
+    { "field": "archive_type" }
   ],
   "type": "custom"
 }
