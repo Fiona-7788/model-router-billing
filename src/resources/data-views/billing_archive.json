@@ -1,7 +1,9 @@
 {
   "code": "billing_archive",
   "name": "账单归档数据视图",
-  "base": "FORM_A839A016D0BF4BB5BE3CCF50F9891F1C",
+  "base": {
+    "formUuid": "FORM_A839A016D0BF4BB5BE3CCF50F9891F1C"
+  },
   "select": ["archive_date", "data_json", "record_count", "archive_type"],
   "type": "custom"
 }
