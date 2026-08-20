@@ -1400,28 +1400,37 @@ async function queryLocalBillingData(ctx: any, params: any) {
     
     // 方式 4.5: ctx.variables 持久化存储查询（临时方案）
     if (!items || items.length === 0) {
-      try {
-        const allVars = await ctx.variables.list();
-        const varItems: any[] = [];
-        for (const v of (allVars || [])) {
-          const key = typeof v === 'string' ? v : v?.key || v?.name;
-          if (key && key.startsWith('billing_archive_')) {
-            const val = await ctx.variables.get(key);
-            if (val) {
-              try {
-                const parsed = typeof val === 'string' ? JSON.parse(val) : val;
-                varItems.push({ formData: parsed, formInstId: key });
-              } catch { varItems.push({ formData: val, formInstId: key }); }
+      if (ctx?.variables && typeof ctx.variables.list === 'function') {
+        try {
+          const allVars = await ctx.variables.list();
+          queryAttempts.push(`variables.list:type=${typeof allVars}`);
+          const varItems: any[] = [];
+          for (const v of (allVars || [])) {
+            const key = typeof v === 'string' ? v : v?.key || v?.name;
+            if (key && key.startsWith('billing_archive_')) {
+              const val = await ctx.variables.get(key);
+              if (val) {
+                try {
+                  const parsed = typeof val === 'string' ? JSON.parse(val) : val;
+                  varItems.push({ formData: parsed, formInstId: key });
+                } catch { varItems.push({ formData: val, formInstId: key }); }
+              }
             }
           }
+          if (varItems.length > 0) {
+            items = varItems;
+            queryAttempts.push("variables.list:OK");
+            console.log(`变量存储查询到 ${varItems.length} 条记录`);
+          } else {
+            queryAttempts.push(`variables.list:empty(${(allVars||[]).length} vars)`);
+          }
+        } catch (e: any) {
+          queryAttempts.push(`variables.list:${e?.message || 'failed'}`);
+          console.log(`variables.list 失败: ${e?.message}`);
         }
-        if (varItems.length > 0) {
-          items = varItems;
-          queryAttempts.push("variables.list:OK");
-          console.log(`变量存储查询到 ${varItems.length} 条记录`);
-        }
-      } catch (e: any) {
-        queryAttempts.push(`variables.list:${e?.message || 'failed'}`);
+      } else {
+        queryAttempts.push(`variables.list:API_NOT_AVAILABLE(ctx.variables=${typeof ctx?.variables})`);
+        console.log(`ctx.variables 不可用: ${typeof ctx?.variables}, methods: ${ctx?.variables ? Object.keys(ctx.variables).join(',') : 'N/A'}`);
       }
     }
     
