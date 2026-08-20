@@ -1507,18 +1507,18 @@ export default async function(ctx: any) {
           if (val && typeof val === 'object' && !Array.isArray(val)) {
             const methods = Object.keys(val).filter(k => typeof val[k] === 'function');
             const props = Object.keys(val).filter(k => typeof val[k] !== 'function');
-            ctxDetail[key] = { methods, props: props.slice(0, 20) };
-            // 深入一层：检查方法的原型
+            const propValues: Record<string, any> = {};
+            for (const p of props.slice(0, 10)) {
+              try { propValues[p] = typeof val[p] === 'object' ? JSON.stringify(val[p]).slice(0, 200) : String(val[p]).slice(0, 200); } catch { propValues[p] = 'N/A'; }
+            }
+            ctxDetail[key] = { methods, props: propValues };
             for (const m of methods.slice(0, 5)) {
-              try {
-                const fnStr = val[m].toString();
-                ctxDetail[key][`${m}_sig`] = fnStr.slice(0, 80);
-              } catch { ctxDetail[key][`${m}_sig`] = 'N/A'; }
+              try { ctxDetail[key][`${m}_sig`] = val[m].toString().slice(0, 80); } catch { ctxDetail[key][`${m}_sig`] = 'N/A'; }
             }
           } else if (typeof val === 'function') {
             ctxDetail[key] = { type: 'function', sig: val.toString().slice(0, 80) };
           } else {
-            ctxDetail[key] = { type: typeof val, value: val === null ? 'null' : String(val).slice(0, 100) };
+            ctxDetail[key] = { type: typeof val, value: val === null ? 'null' : String(val).slice(0, 200) };
           }
         }
         result = { ctxKeys, ctxDetail };
