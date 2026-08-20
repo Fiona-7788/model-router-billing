@@ -1188,32 +1188,65 @@ async function queryLocalBillingData(ctx: any, params: any) {
     let items: any[] = [];
     
     // 方式 1 (优先): ctx.variables 持久化存储查询
-    if (ctx?.variables && typeof ctx.variables.list === 'function') {
-      try {
-        const allVars = await ctx.variables.list();
-        queryAttempts.push(`vars.list:type=${typeof allVars},count=${(allVars||[]).length}`);
-        const varItems: any[] = [];
-        for (const v of (allVars || [])) {
-          const key = typeof v === 'string' ? v : v?.key || v?.name;
-          if (key && key.startsWith('billing_archive_')) {
-            const val = await ctx.variables.get(key);
+    if (ctx?.variables && typeof ctx.variables === 'object') {
+      const varMethods = Object.keys(ctx.variables).filter(k => typeof ctx.variables[k] === 'function');
+      queryAttempts.push(`vars:methods=[${varMethods.join(',')}],keys=[${Object.keys(ctx.variables).join(',')}]`);
+      console.log('ctx.variables methods:', varMethods, 'all keys:', Object.keys(ctx.variables));
+      
+      // 尝试用 get 方法读取已知的归档键
+      const tryKeys = [`billing_archive_${targetDate}`, `archive_${targetDate}`];
+      const varItems: any[] = [];
+      for (const tryKey of tryKeys) {
+        if (typeof ctx.variables.get === 'function') {
+          try {
+            const val = await ctx.variables.get(tryKey);
             if (val) {
               try {
                 const parsed = typeof val === 'string' ? JSON.parse(val) : val;
-                varItems.push({ formData: parsed, formInstId: key });
-              } catch { varItems.push({ formData: val, formInstId: key }); }
+                varItems.push({ formData: parsed, formInstId: tryKey });
+              } catch { varItems.push({ formData: val, formInstId: tryKey }); }
+            }
+          } catch (e: any) {
+            queryAttempts.push(`vars.get(${tryKey}):${e?.message?.slice(0,20) || 'err'}`);
+          }
+        }
+      }
+      
+      // 如果有 list/all/keys 方法，尝试列出所有变量
+      if (varItems.length === 0) {
+        for (const listMethod of ['list', 'all', 'keys', 'getKeys', 'getAll']) {
+          if (typeof ctx.variables[listMethod] === 'function') {
+            try {
+              const allVars = await ctx.variables[listMethod]();
+              queryAttempts.push(`vars.${listMethod}:type=${typeof allVars}`);
+              for (const v of (allVars || [])) {
+                const key = typeof v === 'string' ? v : v?.key || v?.name;
+                if (key && key.startsWith('billing_archive_')) {
+                  if (typeof ctx.variables.get === 'function') {
+                    const val = await ctx.variables.get(key);
+                    if (val) {
+                      try {
+                        const parsed = typeof val === 'string' ? JSON.parse(val) : val;
+                        varItems.push({ formData: parsed, formInstId: key });
+                      } catch { varItems.push({ formData: val, formInstId: key }); }
+                    }
+                  }
+                }
+              }
+              if (varItems.length > 0) break;
+            } catch (e: any) {
+              queryAttempts.push(`vars.${listMethod}:${e?.message?.slice(0,20) || 'err'}`);
             }
           }
         }
-        if (varItems.length > 0) {
-          items = varItems;
-          queryAttempts.push("vars:OK");
-          console.log(`变量存储查询到 ${varItems.length} 条记录`);
-        } else {
-          queryAttempts.push(`vars:empty`);
-        }
-      } catch (e: any) {
-        queryAttempts.push(`vars:${e?.message || 'err'}`);
+      }
+      
+      if (varItems.length > 0) {
+        items = varItems;
+        queryAttempts.push("vars:OK");
+        console.log(`变量存储查询到 ${varItems.length} 条记录`);
+      } else {
+        queryAttempts.push(`vars:noData`);
       }
     } else {
       queryAttempts.push(`vars:N/A(type=${typeof ctx?.variables})`);
