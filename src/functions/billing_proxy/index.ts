@@ -936,6 +936,9 @@ async function archiveBillingData(ctx: any, params: any) {
         { method: "POST" as const, path: `/api/v1/forms/${ARCHIVE_FORM_UUID}/sync-schema`, body: {} },
         { method: "POST" as const, path: `/form/${ARCHIVE_FORM_UUID}/init-table`, body: {} },
         { method: "POST" as const, path: `/api/form-schema/sync`, body: { formUuid: ARCHIVE_FORM_UUID } },
+        { method: "POST" as const, path: `/api/v1/form/${ARCHIVE_FORM_UUID}/init`, body: {} },
+        { method: "POST" as const, path: `/api/v1/form-data/init`, body: { formUuid: ARCHIVE_FORM_UUID } },
+        { method: "POST" as const, path: `/service/api/v1/form/${ARCHIVE_FORM_UUID}/sync-schema`, body: {} },
       ];
       for (const ep of syncEndpoints) {
         try {
@@ -964,7 +967,29 @@ async function archiveBillingData(ctx: any, params: any) {
       } catch (e: any) {
         lastError = e;
         attempts.push(`form.createOne:${e?.message || 'failed'}`);
-        console.log(`ctx.form.createOne 失败: ${e?.message}`);
+        console.log(`ctx.form.createOne 失败：${e?.message}`);
+            
+        // 如果 form.createOne 失败，尝试使用 platform.api 直接创建
+        if (ctx?.platform?.api && e?.message?.includes("数据表未初始化")) {
+          attempts.push("form.createOne:tryingPlatformApi");
+          const createEndpoints = [
+            { method: "POST" as const, path: `/api/v1/form-data`, body: { formUuid: ARCHIVE_FORM_UUID, formData: formDataObj } },
+            { method: "POST" as const, path: `/api/v1/form/${ARCHIVE_FORM_UUID}/data`, body: formDataObj },
+            { method: "POST" as const, path: `/service/api/v1/form-data`, body: { formUuid: ARCHIVE_FORM_UUID, formData: formDataObj } },
+          ];
+          for (const ep of createEndpoints) {
+            try {
+              attempts.push(`create:${ep.path}`);
+              saveResult = await ctx.platform.api.request(ep);
+              attempts.push(`create:${ep.path}:OK`);
+              console.log(`Create via ${ep.path} success`);
+              break;
+            } catch (e2: any) {
+              attempts.push(`create:${ep.path}:${e2?.message || 'failed'}`);
+              console.log(`Create via ${ep.path} failed: ${e2?.message}`);
+            }
+          }
+        }
       }
     }
     
