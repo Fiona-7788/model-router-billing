@@ -8,8 +8,9 @@ export function FormManagementPage() {
   const [status, setStatus] = useState<"idle" | "checking" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
 
-  const platformFormUrl = `/view/${APP_TYPE}/admin/forms/${ARCHIVE_FORM_UUID}`;
-  const platformFormListUrl = `/view/${APP_TYPE}/admin/forms`;
+  // 平台原生表单管理 URL（不是 SPA 路由）
+  const platformFormUrl = `/service/admin/forms/${ARCHIVE_FORM_UUID}`;
+  const platformFormListUrl = `/service/admin/forms`;
 
   const checkFormStatus = async () => {
     setStatus("checking");
