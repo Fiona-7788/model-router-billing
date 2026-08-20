@@ -1042,7 +1042,9 @@ async function archiveBillingData(ctx: any, params: any) {
         if (saveResult) break;
         try {
           attempts.push(`resources.${method}`);
+          // 尝试使用 formUuid 参数（与查询时一致）
           saveResult = await ctx.resources[method]({
+            formUuid: ARCHIVE_FORM_UUID,
             resourceType: "billing_archive",
             data: formDataObj,
           });
