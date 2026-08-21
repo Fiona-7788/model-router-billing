@@ -1840,6 +1840,86 @@ export default async function(ctx: any) {
         result = { appType, formUuid, ...testResults };
         break;
       }
+      case "test_init_form": {
+        // 测试各种方式初始化表单数据表
+        const appType = ctx?.app?.appType || "APP_DC40389CBE164B18AFAF";
+        const formUuid = ARCHIVE_FORM_UUID;
+        const results: Record<string, any> = {};
+        
+        // 1. 检查表单当前状态
+        try {
+          const formInfo = await ctx.resources.resolveForm(formUuid);
+          results.formInfo = {
+            type: typeof formInfo,
+            isString: typeof formInfo === 'string',
+            length: typeof formInfo === 'string' ? formInfo.length : undefined,
+            keys: formInfo && typeof formInfo === 'object' ? Object.keys(formInfo) : [],
+            sample: JSON.stringify(formInfo).slice(0, 500)
+          };
+        } catch (e: any) {
+          results.formInfo = { error: e?.message };
+        }
+        
+        // 2. 尝试通过 schema-plan API 初始化（如果存在）
+        const initPaths = [
+          `/api/v1/apps/${appType}/forms/${formUuid}/schema/sync`,
+          `/api/v1/forms/${formUuid}/schema/sync`,
+          `/dingtalk/v1.0/yidaFormApp/forms/${formUuid}/schema/sync`,
+          `/api/v1/form/${formUuid}/sync`,
+        ];
+        
+        for (const path of initPaths) {
+          try {
+            const r = await ctx.platform.api.post(path, {});
+            results[`init:${path}`] = { success: true, result: JSON.stringify(r).slice(0, 300) };
+          } catch (e: any) {
+            results[`init:${path}`] = { error: e?.message?.slice(0, 150) };
+          }
+        }
+        
+        // 3. 尝试直接创建一条记录（可能自动初始化数据表）
+        try {
+          const createResult = await ctx.methods.createOneData({
+            formUuid,
+            formData: {
+              archive_date: Date.now(),
+              data_json: JSON.stringify({ test: "init" }),
+              record_count: 1,
+              archive_type: "init_test",
+            },
+          });
+          results.createOneData_autoInit = { success: true, result: createResult };
+        } catch (e: any) {
+          results.createOneData_autoInit = { error: e?.message };
+        }
+        
+        // 4. 尝试使用 ctx.form.createOne（可能需要数据表）
+        try {
+          const formCreateResult = await ctx.form.createOne({
+            formUuid,
+            formData: {
+              archive_date: Date.now(),
+              data_json: JSON.stringify({ test: "init" }),
+              record_count: 1,
+              archive_type: "init_test",
+            },
+          });
+          results.formCreateOne_autoInit = { success: true, result: formCreateResult };
+        } catch (e: any) {
+          results.formCreateOne_autoInit = { error: e?.message };
+        }
+        
+        // 5. 检查是否有其他可用的存储 API
+        const availableApis: string[] = [];
+        if (ctx?.methods) availableApis.push(...Object.keys(ctx.methods).filter(k => typeof ctx.methods[k] === 'function'));
+        if (ctx?.form) availableApis.push(...Object.keys(ctx.form).filter(k => typeof ctx.form[k] === 'function'));
+        if (ctx?.dataView) availableApis.push(...Object.keys(ctx.dataView).filter(k => typeof ctx.dataView[k] === 'function'));
+        if (ctx?.resources) availableApis.push(...Object.keys(ctx.resources).filter(k => typeof ctx.resources[k] === 'function'));
+        results.availableApis = availableApis.slice(0, 50);
+        
+        result = { appType, formUuid, ...results };
+        break;
+      }
       case "diagnose_full": {
         // 返回完整的 JSON 诊断信息，不被截断
         const ctxKeys = Object.keys(ctx || {});
