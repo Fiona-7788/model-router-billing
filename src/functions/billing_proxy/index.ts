@@ -932,30 +932,13 @@ async function archiveBillingData(ctx: any, params: any) {
     
     let lastError: any = null;
     
-    // 方式 1 (优先): ctx.methods.createOneData
-    if (ctx?.methods && typeof ctx.methods.createOneData === "function") {
-      try {
-        attempts.push("methods.createOneData");
-        saveResult = await ctx.methods.createOneData({
-          formUuid: ARCHIVE_FORM_UUID,
-          formData: formDataObj,
-        });
-        attempts.push("methods.createOneData:OK");
-        console.log(`ctx.methods.createOneData 成功`);
-      } catch (e: any) {
-        lastError = e;
-        attempts.push(`methods.createOneData:${e?.message?.slice(0, 50) || 'failed'}`);
-        console.log(`ctx.methods.createOneData 失败: ${e?.message}`);
-      }
-    }
-    
-    // 方式 2: ctx.form.createOne
+    // 方式 1 (优先): ctx.form.createOne 用 data 参数（已验证可写入）
     if (ctx?.form && typeof ctx.form.createOne === "function") {
       try {
         attempts.push("form.createOne");
         saveResult = await ctx.form.createOne({
           formUuid: ARCHIVE_FORM_UUID,
-          formData: formDataObj,
+          data: formDataObj,
         });
         attempts.push("form.createOne:OK");
         console.log(`ctx.form.createOne 成功`);
@@ -963,28 +946,21 @@ async function archiveBillingData(ctx: any, params: any) {
         lastError = e;
         attempts.push(`form.createOne:${e?.message || 'failed'}`);
         console.log(`ctx.form.createOne 失败：${e?.message}`);
-            
-        // 如果 form.createOne 失败，尝试使用 platform.api 直接创建
-        if (ctx?.platform?.api && e?.message?.includes("数据表未初始化")) {
-          attempts.push("form.createOne:tryingPlatformApi");
-          const createEndpoints = [
-            { method: "POST" as const, path: `/api/v1/form-data`, body: { formUuid: ARCHIVE_FORM_UUID, formData: formDataObj } },
-            { method: "POST" as const, path: `/api/v1/form/${ARCHIVE_FORM_UUID}/data`, body: formDataObj },
-            { method: "POST" as const, path: `/service/api/v1/form-data`, body: { formUuid: ARCHIVE_FORM_UUID, formData: formDataObj } },
-          ];
-          for (const ep of createEndpoints) {
-            try {
-              attempts.push(`create:${ep.path}`);
-              saveResult = await ctx.platform.api.request(ep);
-              attempts.push(`create:${ep.path}:OK`);
-              console.log(`Create via ${ep.path} success`);
-              break;
-            } catch (e2: any) {
-              attempts.push(`create:${ep.path}:${e2?.message || 'failed'}`);
-              console.log(`Create via ${ep.path} failed: ${e2?.message}`);
-            }
-          }
-        }
+      }
+    }
+    
+    // 方式 2: ctx.methods.createOneData 直接调用（已验证可写入）
+    if (!saveResult && ctx?.methods && typeof ctx.methods.createOneData === "function") {
+      try {
+        attempts.push("methods.createOneData");
+        const appType = ctx?.app?.appType || 'APP_DC40389CBE164B18AFAF';
+        saveResult = await ctx.methods.createOneData(appType, ARCHIVE_FORM_UUID, formDataObj);
+        attempts.push("methods.createOneData:OK");
+        console.log(`ctx.methods.createOneData 成功`);
+      } catch (e: any) {
+        lastError = e;
+        attempts.push(`methods.createOneData:${e?.message?.slice(0, 50) || 'failed'}`);
+        console.log(`ctx.methods.createOneData 失败: ${e?.message}`);
       }
     }
     
@@ -1206,15 +1182,14 @@ async function queryLocalBillingData(ctx: any, params: any) {
       console.log(`data_json raw (前200字):`, JSON.stringify(fd.data_json || '').slice(0, 200));
     }
     
-    // 在返回的结果中按日期过滤（多重匹配策略）
+    // 在返回的结果中按日期过滤（字段值在 item 顶层，不在 formData 中）
     const matchedItems = Array.isArray(items) ? items.filter((item: any) => {
-      const formData = typeof item.formData === "string" 
-        ? JSON.parse(item.formData) 
-        : item.formData || item;
+      // 字段值直接在 item 顶层（已验证：ctx.form.queryMany 返回的字段值不在 formData 中）
+      const record = item;
       
-      // 策略1: 从 data_json 内部提取 date 字段匹配（最可靠，不受 DateField 格式影响）
+      // 策略1: 从 data_json 内部提取 date 字段匹配（最可靠）
       try {
-        const dataJsonRaw = formData.data_json;
+        const dataJsonRaw = record.data_json;
         if (dataJsonRaw) {
           const dataJson = typeof dataJsonRaw === "string" ? JSON.parse(dataJsonRaw) : dataJsonRaw;
           if (dataJson?.date === targetDate) return true;
@@ -1222,7 +1197,7 @@ async function queryLocalBillingData(ctx: any, params: any) {
       } catch (_e) { /* data_json 解析失败，继续其他策略 */ }
       
       // 策略2: 匹配 archive_date 字段
-      const archiveDate = formData.archive_date;
+      const archiveDate = record.archive_date;
       if (!archiveDate) return false;
       
       // 直接字符串匹配
@@ -1244,11 +1219,8 @@ async function queryLocalBillingData(ctx: any, params: any) {
     
     if (matchedItems.length > 0) {
       const firstItem = matchedItems[0];
-      const formData = typeof firstItem.formData === "string" 
-        ? JSON.parse(firstItem.formData) 
-        : firstItem.formData || firstItem;
-      const dataJson = formData.data_json 
-        ? (typeof formData.data_json === "string" ? JSON.parse(formData.data_json) : formData.data_json)
+      const dataJson = firstItem.data_json 
+        ? (typeof firstItem.data_json === "string" ? JSON.parse(firstItem.data_json) : firstItem.data_json)
         : null;
       
       if (dataJson?.rows) {
