@@ -1325,6 +1325,49 @@ export default async function(ctx: any) {
       case "queryLocalBillingData":
         result = await queryLocalBillingData(ctx, params);
         break;
+      case "debug_query": {
+        // 诊断：返回 ctx.form.queryMany 的原始数据结构
+        const debugItems: any[] = [];
+        const debugAttempts: string[] = [];
+        try {
+          const searchResult = await ctx.form.queryMany({
+            formUuid: ARCHIVE_FORM_UUID,
+            currentPage: 1,
+            pageSize: 10,
+          });
+          const rawItems = searchResult?.data || searchResult?.resultList || searchResult || [];
+          debugAttempts.push(`queryMany:OK type=${typeof searchResult} isArray=${Array.isArray(searchResult)}`);
+          debugAttempts.push(`rawItems type=${typeof rawItems} isArray=${Array.isArray(rawItems)} len=${Array.isArray(rawItems) ? rawItems.length : 'N/A'}`);
+          
+          if (Array.isArray(rawItems)) {
+            for (let i = 0; i < Math.min(rawItems.length, 3); i++) {
+              const item = rawItems[i];
+              const itemKeys = Object.keys(item || {});
+              const formData = item?.formData || item;
+              const fdKeys = Object.keys(formData || {});
+              const fdSnippet: Record<string, any> = {};
+              for (const k of fdKeys) {
+                const v = formData[k];
+                fdSnippet[k] = {
+                  type: typeof v,
+                  value: typeof v === "string" ? v.slice(0, 100) : (typeof v === "number" ? v : String(v).slice(0, 100)),
+                };
+              }
+              debugItems.push({
+                index: i,
+                itemKeys,
+                fdKeys,
+                fdSnippet,
+                formDataIsString: typeof item?.formData === "string",
+              });
+            }
+          }
+        } catch (e: any) {
+          debugAttempts.push(`error: ${e?.message?.slice(0, 200)}`);
+        }
+        result = { debugAttempts, debugItems };
+        break;
+      }
       case "diagnose": {
         const ctxKeys = Object.keys(ctx || {});
         const ctxDetail: Record<string, any> = {};
