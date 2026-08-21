@@ -1,0 +1,9 @@
+{
+  "formUuid": "FORM_4305FA38D1C64C2EB9D45704C314F490",
+  "fields": [
+    { "code": "archive_date", "name": "归档日期", "type": "date", "required": true },
+    { "code": "data_json", "name": "数据JSON", "type": "textarea", "required": true },
+    { "code": "record_count", "name": "记录数", "type": "number", "required": false },
+    { "code": "archive_type", "name": "归档类型", "type": "text", "required": false }
+  ]
+}
