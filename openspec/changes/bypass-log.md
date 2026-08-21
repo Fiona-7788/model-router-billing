@@ -2035,3 +2035,10 @@
 - targets: {"forms":["billing_archive_v2"],"pages":[],"functions":[],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"runtime":false,"other":[]}
 - followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
 - user: fengyujing
+## 2026-08-21T09:20:33.636Z
+
+- command: openxiangda runtime deploy
+- reason: v62 前端部署查询测试按钮
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
