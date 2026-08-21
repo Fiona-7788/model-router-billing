@@ -2014,3 +2014,24 @@
 - targets: {"forms":["billing_archive_v2"],"pages":[],"functions":[],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"runtime":false,"other":[]}
 - followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
 - user: fengyujing
+## 2026-08-21T09:08:21.704Z
+
+- command: openxiangda runtime deploy
+- reason: v60 前端部署+表单schema
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-21T09:08:44.722Z
+
+- command: openxiangda resource publish
+- reason: 推送表单schema含字段定义以初始化数据表
+- targets: {"forms":["billing_archive_v2"],"pages":[],"functions":[],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-21T09:08:51.211Z
+
+- command: openxiangda resource publish
+- reason: 推送表单schema含字段定义以初始化数据表
+- targets: {"forms":["billing_archive_v2"],"pages":[],"functions":[],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
