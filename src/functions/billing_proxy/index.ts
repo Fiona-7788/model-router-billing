@@ -1840,6 +1840,109 @@ export default async function(ctx: any) {
         result = { appType, formUuid, ...testResults };
         break;
       }
+      case "test_all_apis": {
+        // 全面测试所有可用的存储 API
+        const appType = ctx?.app?.appType || "APP_DC40389CBE164B18AFAF";
+        const formUuid = ARCHIVE_FORM_UUID;
+        const results: Record<string, any> = {};
+        
+        // 1. 列出所有 ctx 对象及其方法
+        const ctxOverview: Record<string, any> = {};
+        for (const key of Object.keys(ctx || {})) {
+          const val = ctx[key];
+          if (val && typeof val === 'object' && !Array.isArray(val)) {
+            const methods = Object.keys(val).filter(k => typeof val[k] === 'function');
+            ctxOverview[key] = { methods };
+          }
+        }
+        results.ctxOverview = ctxOverview;
+        
+        // 2. 测试 ctx.form 的所有方法
+        if (ctx?.form) {
+          const formMethods = Object.keys(ctx.form).filter(k => typeof ctx.form[k] === 'function');
+          results.formMethods = formMethods;
+          
+          // 尝试 form.createOne
+          try {
+            const r = await ctx.form.createOne({
+              formUuid,
+              formData: {
+                archive_date: Date.now(),
+                data_json: JSON.stringify({ test: "form_createOne" }),
+                record_count: 1,
+                archive_type: "test",
+              },
+            });
+            results.formCreateOne = { success: true, result: JSON.stringify(r).slice(0, 300) };
+          } catch (e: any) {
+            results.formCreateOne = { error: e?.message };
+          }
+          
+          // 尝试 form.queryMany
+          try {
+            const r = await ctx.form.queryMany({
+              formUuid,
+              searchCondition: {},
+              currentPage: 1,
+              pageSize: 10,
+            });
+            results.formQueryMany = { success: true, result: JSON.stringify(r).slice(0, 300) };
+          } catch (e: any) {
+            results.formQueryMany = { error: e?.message };
+          }
+        }
+        
+        // 3. 测试 ctx.dataView 的所有方法
+        if (ctx?.dataView) {
+          const dvMethods = Object.keys(ctx.dataView).filter(k => typeof ctx.dataView[k] === 'function');
+          results.dataViewMethods = dvMethods;
+          
+          // 尝试每个方法
+          for (const method of dvMethods.slice(0, 10)) {
+            try {
+              const r = await ctx.dataView[method]({
+                dataViewCode: "billing_archive",
+                data: {
+                  archive_date: Date.now(),
+                  data_json: JSON.stringify({ test: "dataView" }),
+                  record_count: 1,
+                  archive_type: "test",
+                },
+              });
+              results[`dataView.${method}`] = { success: true, result: JSON.stringify(r).slice(0, 300) };
+            } catch (e: any) {
+              results[`dataView.${method}`] = { error: e?.message?.slice(0, 200) };
+            }
+          }
+        }
+        
+        // 4. 测试 ctx.resources 的所有方法
+        if (ctx?.resources) {
+          const resMethods = Object.keys(ctx.resources).filter(k => typeof ctx.resources[k] === 'function');
+          results.resourcesMethods = resMethods;
+          
+          // 尝试 resolveForm
+          try {
+            const r = await ctx.resources.resolveForm(formUuid);
+            results.resolveForm = {
+              type: typeof r,
+              isString: typeof r === 'string',
+              sample: JSON.stringify(r).slice(0, 300)
+            };
+          } catch (e: any) {
+            results.resolveForm = { error: e?.message };
+          }
+        }
+        
+        // 5. 测试 ctx.methods 的所有方法
+        if (ctx?.methods) {
+          const methodNames = Object.keys(ctx.methods).filter(k => typeof ctx.methods[k] === 'function');
+          results.methodsNames = methodNames;
+        }
+        
+        result = { appType, formUuid, ...results };
+        break;
+      }
       case "test_init_form": {
         // 测试各种方式初始化表单数据表
         const appType = ctx?.app?.appType || "APP_DC40389CBE164B18AFAF";
