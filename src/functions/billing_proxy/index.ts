@@ -1174,8 +1174,38 @@ async function queryLocalBillingData(ctx: any, params: any) {
           queryAttempts.push(`methods.queryManyData:empty`);
         }
       } catch (e: any) {
-        queryAttempts.push(`methods.queryManyData:${e?.message?.slice(0, 50) || 'err'}`);
+        queryAttempts.push(`methods.queryManyData:${e?.message?.slice(0,50) || 'err'}`);
         console.log(`ctx.methods.queryManyData 失败: ${e?.message}`);
+      }
+    }
+        
+    // 方式 1b: ctx.utils.http 直接调用平台 REST API（绕过 RPC 资源绑定检查）
+    if ((!items || items.length === 0) && ctx?.utils?.http) {
+      try {
+        queryAttempts.push("http:platformAPI");
+        const appType = ctx?.app?.appType || "APP_DC40389CBE164B18AFAF";
+        const url = `/service/openxiangda-api/v1/apps/${appType}/forms/${ARCHIVE_FORM_UUID}/data?page=1&pageSize=100`;
+        const response = await ctx.utils.http.get(url);
+        const data = response?.data ?? response;
+        console.log(`HTTP platform API response type:`, typeof data, Array.isArray(data) ? `array[${data.length}]` : JSON.stringify(data).slice(0, 200));
+        if (Array.isArray(data)) {
+          items = data;
+          queryAttempts.push("http:platformAPI:OK");
+        } else if (data?.data && Array.isArray(data.data)) {
+          items = data.data;
+          queryAttempts.push("http:platformAPI:OK(data)");
+        } else if (data?.resultList && Array.isArray(data.resultList)) {
+          items = data.resultList;
+          queryAttempts.push("http:platformAPI:OK(resultList)");
+        } else if (data?.items && Array.isArray(data.items)) {
+          items = data.items;
+          queryAttempts.push("http:platformAPI:OK(items)");
+        } else {
+          queryAttempts.push(`http:platformAPI:noArray|type:${typeof data}`);
+        }
+      } catch (e: any) {
+        queryAttempts.push(`http:platformAPI:${e?.message?.slice(0,50) || 'err'}`);
+        console.log(`HTTP platform API failed: ${e?.message}`);
       }
     }
     
