@@ -1368,6 +1368,64 @@ export default async function(ctx: any) {
         result = { debugAttempts, debugItems };
         break;
       }
+      case "get_form_schema": {
+        // 获取表单 schema，找出实际的字段 ID 映射
+        const schemaResult: Record<string, any> = {};
+        // 方法1: ctx.resources.resolveForm
+        try {
+          const formInfo = await ctx.resources.resolveForm(ARCHIVE_FORM_UUID);
+          schemaResult.resolveForm = {
+            type: typeof formInfo,
+            keys: formInfo && typeof formInfo === 'object' ? Object.keys(formInfo) : [],
+            sample: JSON.stringify(formInfo).slice(0, 2000),
+          };
+        } catch (e: any) {
+          schemaResult.resolveForm = { error: e?.message?.slice(0, 300) };
+        }
+        // 方法2: 通过 platform API 获取 schema
+        const schemaPaths = [
+          `/api/v1/apps/${ctx?.app?.appType || 'APP_DC40389CBE164B18AFAF'}/forms/${ARCHIVE_FORM_UUID}/schema`,
+          `/api/v1/forms/${ARCHIVE_FORM_UUID}/schema`,
+          `/v1/apps/${ctx?.app?.appType || 'APP_DC40389CBE164B18AFAF'}/forms/${ARCHIVE_FORM_UUID}/schema`,
+        ];
+        for (const path of schemaPaths) {
+          try {
+            const schema = await ctx.platform.api.get(path, {});
+            schemaResult[`schema:${path}`] = {
+              success: true,
+              sample: JSON.stringify(schema).slice(0, 2000),
+            };
+            break;
+          } catch (e: any) {
+            schemaResult[`schema:${path}`] = { error: e?.message?.slice(0, 200) };
+          }
+        }
+        // 方法3: 通过 form.queryMany 返回的第一条记录推断字段 ID
+        try {
+          const searchResult = await ctx.form.queryMany({
+            formUuid: ARCHIVE_FORM_UUID,
+            currentPage: 1,
+            pageSize: 1,
+          });
+          const rawItems = searchResult?.data || searchResult?.resultList || searchResult || [];
+          if (Array.isArray(rawItems) && rawItems.length > 0) {
+            const item = rawItems[0];
+            // 检查 item 本身是否有 fieldId 映射
+            schemaResult.firstItemFullKeys = Object.keys(item || {});
+            schemaResult.firstItemFormDataKeys = Object.keys(item?.formData || {});
+            // 检查是否有 allFields, fieldData, fields 等属性
+            for (const prop of ['allFields', 'fieldData', 'fields', 'formFieldData', 'instValue']) {
+              if (item?.[prop]) {
+                schemaResult[`firstItem.${prop}`] = JSON.stringify(item[prop]).slice(0, 1000);
+              }
+            }
+          }
+        } catch (e: any) {
+          schemaResult.queryManyError = e?.message?.slice(0, 200);
+        }
+        result = schemaResult;
+        break;
+      }
       case "diagnose": {
         const ctxKeys = Object.keys(ctx || {});
         const ctxDetail: Record<string, any> = {};
