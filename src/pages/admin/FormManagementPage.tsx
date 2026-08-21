@@ -11,9 +11,9 @@ export function FormManagementPage() {
   const [diagResult, setDiagResult] = useState<any>(null);
   const [diagLoading, setDiagLoading] = useState(false);
 
-  // 平台原生表单管理 URL（不是 SPA 路由）
-  const platformFormUrl = `/service/admin/forms/${ARCHIVE_FORM_UUID}`;
-  const platformFormListUrl = `/service/admin/forms`;
+  // 平台原生表单设计器 URL（完整 URL，不是 SPA 代理路径）
+  const platformFormUrl = `https://yida.wisejob.cn/view/${APP_TYPE}/admin/forms/${ARCHIVE_FORM_UUID}`;
+  const platformFormListUrl = `https://yida.wisejob.cn/view/${APP_TYPE}/admin/forms`;
 
   const runDiagnose = async () => {
     setDiagLoading(true);
