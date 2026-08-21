@@ -1426,6 +1426,116 @@ export default async function(ctx: any) {
         result = schemaResult;
         break;
       }
+      case "get_field_ids": {
+        // 尝试多种方式获取表单实际字段 ID
+        const fieldResult: Record<string, any> = {};
+        const appType = ctx?.app?.appType || 'APP_DC4305FA38D1C64C2EB9D45704C314F490';
+        
+        // 方法1: DingTalk Yida OpenAPI 获取表单组件
+        const componentPaths = [
+          { path: `/dingtalk/v1.0/yidaFormApp/forms/${ARCHIVE_FORM_UUID}/components`, method: 'GET' },
+          { path: `/v1.0/yida/forms/components/${ARCHIVE_FORM_UUID}`, method: 'GET' },
+          { path: `/api/dingtalk/v1.0/yidaFormApp/forms/${ARCHIVE_FORM_UUID}/components`, method: 'GET' },
+        ];
+        for (const ep of componentPaths) {
+          try {
+            const r = await ctx.platform.api.get(ep.path, {});
+            fieldResult[`components:${ep.path}`] = { success: true, sample: JSON.stringify(r).slice(0, 2000) };
+          } catch (e: any) {
+            fieldResult[`components:${ep.path}`] = { error: e?.message?.slice(0, 200) };
+          }
+        }
+        
+        // 方法2: 尝试用 formInstId 获取实例详情（可能包含字段 ID）
+        try {
+          const searchResult = await ctx.form.queryMany({
+            formUuid: ARCHIVE_FORM_UUID,
+            currentPage: 1,
+            pageSize: 1,
+          });
+          const rawItems = searchResult?.data || searchResult?.resultList || searchResult || [];
+          if (Array.isArray(rawItems) && rawItems.length > 0) {
+            const instId = rawItems[0].formInstId;
+            fieldResult.testFormInstId = instId;
+            
+            // 尝试获取实例详情
+            const instPaths = [
+              `/dingtalk/v1.0/yidaFormApp/forms/instances/${instId}`,
+              `/v1.0/yida/forms/instances/${instId}`,
+              `/api/v1/apps/${appType}/forms/${ARCHIVE_FORM_UUID}/instances/${instId}`,
+            ];
+            for (const p of instPaths) {
+              try {
+                const r = await ctx.platform.api.get(p, {});
+                fieldResult[`inst:${p}`] = { success: true, sample: JSON.stringify(r).slice(0, 2000) };
+              } catch (e: any) {
+                fieldResult[`inst:${p}`] = { error: e?.message?.slice(0, 200) };
+              }
+            }
+          }
+        } catch (e: any) {
+          fieldResult.queryError = e?.message?.slice(0, 200);
+        }
+        
+        // 方法3: 测试创建一条记录，用不同的 key 格式看哪个能写入
+        const testFieldIds = [
+          // 用字段名
+          { archive_date: Date.now(), data_json: '{"test":"byname"}', record_count: 1, archive_type: 'field_test' },
+          // 用 textField/numberField/textareaField 等猜测 ID (先跳过，需要知道实际 ID)
+        ];
+        
+        // 尝试 form.createOne 并检查返回值
+        try {
+          const createResult = await ctx.form.createOne({
+            formUuid: ARCHIVE_FORM_UUID,
+            formData: testFieldIds[0],
+          });
+          fieldResult.createTestResult = {
+            success: true,
+            type: typeof createResult,
+            sample: JSON.stringify(createResult).slice(0, 500),
+          };
+          
+          // 立即查询刚创建的记录，看值是否写入
+          if (createResult?.formInstId) {
+            fieldResult.createdFormInstId = createResult.formInstId;
+            const verifyResult = await ctx.form.queryMany({
+              formUuid: ARCHIVE_FORM_UUID,
+              currentPage: 1,
+              pageSize: 5,
+            });
+            const verifyItems = verifyResult?.data || verifyResult?.resultList || verifyResult || [];
+            const newItem = Array.isArray(verifyItems) ? verifyItems.find((i: any) => i.formInstId === createResult.formInstId) : null;
+            if (newItem) {
+              fieldResult.verifyNewItem = {
+                keys: Object.keys(newItem),
+                archive_date: newItem.archive_date,
+                data_json: newItem.data_json,
+                formData: newItem.formData,
+              };
+            }
+          }
+        } catch (e: any) {
+          fieldResult.createTestResult = { error: e?.message?.slice(0, 300) };
+        }
+        
+        // 方法4: 检查 ctx.form 的所有方法签名
+        if (ctx?.form) {
+          fieldResult.formMethods = {};
+          for (const m of Object.keys(ctx.form)) {
+            if (typeof ctx.form[m] === 'function') {
+              try {
+                fieldResult.formMethods[m] = ctx.form[m].toString().slice(0, 200);
+              } catch {
+                fieldResult.formMethods[m] = 'N/A';
+              }
+            }
+          }
+        }
+        
+        result = fieldResult;
+        break;
+      }
       case "diagnose": {
         const ctxKeys = Object.keys(ctx || {});
         const ctxDetail: Record<string, any> = {};
