@@ -1184,29 +1184,40 @@ async function queryLocalBillingData(ctx: any, params: any) {
       try {
         queryAttempts.push("resources.resolveForm");
         const formObj = await ctx.resources.resolveForm(ARCHIVE_FORM_UUID);
-        console.log(`resolveForm result type:`, typeof formObj, Object.keys(formObj || {}).slice(0, 10));
-        const formMethods = Object.keys(formObj || {}).filter(k => typeof (formObj as any)[k] === "function");
-        console.log(`resolveForm methods:`, formMethods.slice(0, 10));
+        console.log(`resolveForm result type:`, typeof formObj);
+        console.log(`resolveForm result keys:`, Object.keys(formObj || {}));
+        console.log(`resolveForm result JSON:`, JSON.stringify(formObj).slice(0, 500));
         
-        // 尝试 queryMany
-        if (typeof (formObj as any).queryMany === "function") {
-          const result = await (formObj as any).queryMany({ currentPage: 1, pageSize: 100 });
-          items = result?.data || result?.resultList || result || [];
-          if (Array.isArray(items) && items.length > 0) {
-            queryAttempts.push("resources.resolveForm.queryMany:OK");
+        // 检查是否是字符串（表单元数据）还是对象
+        if (typeof formObj === 'string') {
+          queryAttempts.push(`resources.resolveForm:string|len:${formObj.length}`);
+          console.log(`resolveForm returned string (metadata):`, formObj.slice(0, 200));
+        } else if (formObj && typeof formObj === 'object') {
+          const methods = Object.keys(formObj).filter(k => typeof (formObj as any)[k] === "function");
+          console.log(`resolveForm object methods:`, methods);
+          
+          // 尝试调用任何可用的方法
+          if (methods.length > 0) {
+            for (const method of methods) {
+              try {
+                queryAttempts.push(`resources.resolveForm.${method}`);
+                const result = await (formObj as any)[method]({ currentPage: 1, pageSize: 100 });
+                if (Array.isArray(result)) {
+                  items = result;
+                  queryAttempts.push(`resources.resolveForm.${method}:OK`);
+                  break;
+                } else if (result?.data && Array.isArray(result.data)) {
+                  items = result.data;
+                  queryAttempts.push(`resources.resolveForm.${method}:OK(data)`);
+                  break;
+                }
+              } catch (e: any) {
+                queryAttempts.push(`resources.resolveForm.${method}:${e?.message?.slice(0,50) || 'err'}`);
+              }
+            }
           } else {
-            queryAttempts.push(`resources.resolveForm.queryMany:empty`);
+            queryAttempts.push(`resources.resolveForm:noMethods|keys:${Object.keys(formObj).join(',')}`);
           }
-        } else if (typeof (formObj as any).list === "function") {
-          const result = await (formObj as any).list({ page: 1, pageSize: 100 });
-          items = result?.data || result?.resultList || result || [];
-          if (Array.isArray(items) && items.length > 0) {
-            queryAttempts.push("resources.resolveForm.list:OK");
-          } else {
-            queryAttempts.push(`resources.resolveForm.list:empty`);
-          }
-        } else {
-          queryAttempts.push(`resources.resolveForm:noQueryMethod|methods:${formMethods.join(',')}`);
         }
       } catch (e: any) {
         queryAttempts.push(`resources.resolveForm:${e?.message?.slice(0,50) || 'err'}`);
