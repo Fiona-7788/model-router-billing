@@ -1217,7 +1217,7 @@ async function queryLocalBillingData(ctx: any, params: any) {
             items = (data as any)[arrayKey];
             queryAttempts.push(`http:platformAPI:OK(${arrayKey})`);
           } else {
-            queryAttempts.push(`http:platformAPI:noArray|keys:${keys.join(',')}`);
+            queryAttempts.push(`http:platformAPI:error|code:${(data as any)?.code}|msg:${JSON.stringify((data as any)?.message || data).slice(0,200)}`);
           }
         }
       } catch (e: any) {
