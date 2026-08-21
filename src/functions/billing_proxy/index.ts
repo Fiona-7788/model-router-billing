@@ -1613,6 +1613,120 @@ export default async function(ctx: any) {
         result = { ctxKeys, ctxDetail };
         break;
       }
+      case "test_form_api": {
+        // 专门测试 ctx.form API 的各种参数组合
+        const formMethods = Object.keys(ctx?.form || {});
+        const formTests: Record<string, any> = {};
+        const formUuid = ARCHIVE_FORM_UUID;
+        
+        // 测试 1: ctx.form.queryMany 不同参数格式
+        const queryVariants = [
+          { label: "formUuid", params: { formUuid } },
+          { label: "formId", params: { formId: formUuid } },
+          { label: "formCode", params: { formCode: formUuid } },
+          { label: "uuid", params: { uuid: formUuid } },
+          { label: "noParams", params: {} },
+          { label: "formUuid+searchCondition", params: { formUuid, searchCondition: {}, currentPage: 1, pageSize: 10 } },
+          { label: "formUuid+orderBy", params: { formUuid, orderBy: "gmtCreate", order: "desc", currentPage: 1, pageSize: 10 } },
+        ];
+        
+        for (const v of queryVariants) {
+          try {
+            formTests[`queryMany_${v.label}`] = { params: JSON.stringify(v.params).slice(0, 200) };
+            const r = await ctx.form.queryMany(v.params);
+            formTests[`queryMany_${v.label}`] = { 
+              success: true, 
+              type: typeof r, 
+              isArray: Array.isArray(r),
+              keys: r && typeof r === 'object' ? Object.keys(r) : [],
+              sample: JSON.stringify(r).slice(0, 300)
+            };
+            if (Array.isArray(r) && r.length > 0) break;
+            if (r?.data && Array.isArray(r.data) && r.data.length > 0) break;
+          } catch (e: any) {
+            formTests[`queryMany_${v.label}`] = { error: e?.message?.slice(0, 200) };
+          }
+        }
+        
+        // 测试 2: ctx.form.queryOne 不同参数格式
+        const queryOneVariants = [
+          { label: "formUuid", params: { formUuid } },
+          { label: "formId", params: { formId: formUuid } },
+          { label: "noParams", params: {} },
+        ];
+        for (const v of queryOneVariants) {
+          try {
+            formTests[`queryOne_${v.label}`] = { params: JSON.stringify(v.params) };
+            const r = await ctx.form.queryOne(v.params);
+            formTests[`queryOne_${v.label}`] = { 
+              success: true, 
+              type: typeof r,
+              sample: JSON.stringify(r).slice(0, 300)
+            };
+          } catch (e: any) {
+            formTests[`queryOne_${v.label}`] = { error: e?.message?.slice(0, 200) };
+          }
+        }
+        
+        // 测试 3: ctx.form.createOne 不同参数格式
+        const testFormData = { test_field: "diagnostic_test", timestamp: new Date().toISOString() };
+        const createVariants = [
+          { label: "formUuid+formData", params: { formUuid, formData: testFormData } },
+          { label: "formId+data", params: { formId: formUuid, data: testFormData } },
+          { label: "formUuid+data", params: { formUuid, data: testFormData } },
+        ];
+        for (const v of createVariants) {
+          try {
+            formTests[`createOne_${v.label}`] = { params: JSON.stringify(v.params).slice(0, 200) };
+            const r = await ctx.form.createOne(v.params);
+            formTests[`createOne_${v.label}`] = { 
+              success: true, 
+              type: typeof r,
+              sample: JSON.stringify(r).slice(0, 300)
+            };
+            break; // 如果成功就停止
+          } catch (e: any) {
+            formTests[`createOne_${v.label}`] = { error: e?.message?.slice(0, 200) };
+          }
+        }
+        
+        // 测试 4: ctx.platform.api 的方法列表
+        const platformApiInfo: Record<string, any> = {};
+        if (ctx?.platform?.api) {
+          const apiKeys = Object.keys(ctx.platform.api);
+          const apiMethods = apiKeys.filter(k => typeof ctx.platform.api[k] === 'function');
+          const apiProps = apiKeys.filter(k => typeof ctx.platform.api[k] !== 'function');
+          platformApiInfo.keys = apiKeys;
+          platformApiInfo.methods = apiMethods;
+          platformApiInfo.props = apiProps;
+          
+          // 检查 method signature
+          for (const m of apiMethods.slice(0, 5)) {
+            try {
+              platformApiInfo[`${m}_sig`] = ctx.platform.api[m].toString().slice(0, 200);
+            } catch { platformApiInfo[`${m}_sig`] = 'N/A'; }
+          }
+        }
+        
+        // 测试 5: 检查所有表单 UUID 对应的表单信息
+        const allFormUuids = Object.keys(ctx?.resources?.bindings?.forms || {});
+        const formInfo: Record<string, any> = {};
+        for (const fuuid of allFormUuids) {
+          try {
+            const fobj = await ctx.resources.resolveForm(fuuid);
+            formInfo[fuuid] = {
+              type: typeof fobj,
+              keys: fobj && typeof fobj === 'object' ? Object.keys(fobj).slice(0, 20) : [],
+              sample: JSON.stringify(fobj).slice(0, 300)
+            };
+          } catch (e: any) {
+            formInfo[fuuid] = { error: e?.message?.slice(0, 200) };
+          }
+        }
+        
+        result = { formMethods, formTests, platformApiInfo, formInfo, archiveFormUuid: formUuid };
+        break;
+      }
       case "diagnose_full": {
         // 返回完整的 JSON 诊断信息，不被截断
         const ctxKeys = Object.keys(ctx || {});
