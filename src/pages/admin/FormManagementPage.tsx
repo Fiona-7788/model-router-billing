@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Database, ExternalLink, RefreshCw, Stethoscope } from "lucide-react";
 
 const APP_TYPE = "APP_DC40389CBE164B18AFAF";
-const ARCHIVE_FORM_UUID = "FORM_A839A016D0BF4BB5BE3CCF50F9891F1C";
+const ARCHIVE_FORM_UUID = "FORM_4305FA38D1C64C2EB9D45704C314F490";
 const FUNCTION_URL = `/service/openxiangda-api/v1/apps/${APP_TYPE}/functions/billing_proxy/invoke`;
 
 export function FormManagementPage() {
@@ -90,14 +90,27 @@ export function FormManagementPage() {
             </div>
           </div>
 
-          <div className="flex items-start gap-3 p-4 bg-yellow-50 rounded-lg">
-            <RefreshCw className="w-5 h-5 text-yellow-600 mt-0.5" />
+          <div className="flex items-start gap-3 p-4 bg-red-50 rounded-lg">
+            <RefreshCw className="w-5 h-5 text-red-600 mt-0.5" />
             <div className="flex-1">
-              <h3 className="font-medium text-yellow-900">初始化数据表</h3>
-              <p className="text-sm text-yellow-700 mt-1">
-                首次使用归档功能前，需要通过平台 UI 初始化表单数据表。
-                点击下方按钮打开平台表单管理页面，平台会自动初始化数据表。
+              <h3 className="font-medium text-red-900">重要：初始化表单数据表</h3>
+              <p className="text-sm text-red-700 mt-1">
+                当前表单是空的，需要通过平台 UI 添加字段并初始化数据表。
+                请按照以下步骤操作：
               </p>
+              <ol className="list-decimal list-inside text-sm text-red-700 mt-2 space-y-1">
+                <li>点击下方按钮打开表单设计器</li>
+                <li>在表单设计器中添加以下字段：
+                  <ul className="list-disc list-inside ml-4 mt-1">
+                    <li><strong>归档日期</strong>（日期类型 DateField）</li>
+                    <li><strong>数据JSON</strong>（多行文本 TextareaField）</li>
+                    <li><strong>记录数</strong>（数字类型 NumberField）</li>
+                    <li><strong>归档类型</strong>（单行文本 TextField）</li>
+                  </ul>
+                </li>
+                <li>点击「保存」按钮</li>
+                <li>返回此页面，点击「检查表单状态」验证</li>
+              </ol>
             </div>
           </div>
 
@@ -109,7 +122,7 @@ export function FormManagementPage() {
               className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               <ExternalLink className="w-4 h-4" />
-              打开表单管理页面
+              打开表单设计器（添加字段）
             </a>
             
             <button
