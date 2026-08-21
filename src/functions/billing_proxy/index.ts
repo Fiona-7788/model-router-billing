@@ -1583,6 +1583,22 @@ export default async function(ctx: any) {
             ctxDetail[key] = { type: typeof val, value: val === null ? 'null' : String(val).slice(0, 200) };
           }
         }
+        
+        // 额外诊断：尝试列出可用的 connector codes
+        if (ctx?.connector) {
+          const connectorKeys = Object.keys(ctx.connector);
+          const connectorMethods = connectorKeys.filter(k => typeof ctx.connector[k] === 'function');
+          ctxDetail['connector_extra'] = { keys: connectorKeys, methods: connectorMethods };
+          
+          // 尝试 resolveConnector 看有哪些可用的 connectors
+          try {
+            const allConnectors = await ctx.connector.resolveConnector?.() || [];
+            ctxDetail['available_connectors'] = Array.isArray(allConnectors) ? allConnectors.map((c: any) => c.code || c.name || c).slice(0, 20) : 'N/A';
+          } catch (e: any) {
+            ctxDetail['available_connectors_error'] = e?.message?.slice(0, 200);
+          }
+        }
+        
         result = { ctxKeys, ctxDetail };
         break;
       }
