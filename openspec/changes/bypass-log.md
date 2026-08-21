@@ -1846,3 +1846,101 @@
 - targets: {"forms":[],"pages":[],"functions":["billing_proxy"],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"runtime":false,"other":[]}
 - followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
 - user: fengyujing
+## 2026-08-21T08:19:09.565Z
+
+- command: openxiangda resource publish
+- reason: 快速测试所有 API
+- targets: {"forms":[],"pages":[],"functions":["billing_proxy"],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-21T08:31:18.418Z
+
+- command: openxiangda runtime deploy
+- reason: v58 前端+函数部署
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-21T08:32:29.459Z
+
+- command: openxiangda runtime deploy
+- reason: v58 前端+函数部署
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-21T08:32:43.665Z
+
+- command: openxiangda runtime deploy
+- reason: v58 前端+函数部署
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-21T08:32:55.416Z
+
+- command: openxiangda runtime deploy
+- reason: v58 前端+函数部署
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-21T08:33:04.111Z
+
+- command: openxiangda runtime deploy
+- reason: v58 前端+函数部署
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-21T08:33:30.715Z
+
+- command: openxiangda runtime deploy
+- reason: v58 前端+函数部署
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-21T08:34:06.913Z
+
+- command: openxiangda runtime deploy
+- reason: v58 前端+函数部署
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-21T08:34:18.757Z
+
+- command: openxiangda runtime deploy
+- reason: v58 前端+函数部署
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-21T08:34:29.452Z
+
+- command: openxiangda runtime deploy
+- reason: v58 前端+函数部署
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-21T08:35:42.414Z
+
+- command: openxiangda runtime deploy
+- reason: v58 前端+函数部署
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-21T08:36:22.165Z
+
+- command: openxiangda runtime deploy
+- reason: v58 前端+函数部署
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-21T08:36:52.384Z
+
+- command: openxiangda runtime deploy
+- reason: v58 前端+函数部署
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-21T08:37:06.885Z
+
+- command: openxiangda runtime deploy
+- reason: v58 前端+函数部署
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
