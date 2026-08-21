@@ -256,6 +256,32 @@ export function FormManagementPage() {
             </button>
 
             <button
+              onClick={async () => {
+                setTestLoading(true);
+                setTestResult(null);
+                try {
+                  const response = await fetch(FUNCTION_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ input: { action: "queryLocalBillingData", params: { date: new Date().toISOString().split("T")[0] } } }),
+                  });
+                  const raw = await response.json();
+                  const result = raw.output ?? raw.data?.output ?? raw.data?.result ?? raw;
+                  setTestResult(result);
+                } catch (error: any) {
+                  setTestResult({ success: false, error: error.message });
+                }
+                setTestLoading(false);
+              }}
+              disabled={testLoading}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors disabled:opacity-50"
+            >
+              <Database className={`w-4 h-4 ${testLoading ? "animate-spin" : ""}`} />
+              {testLoading ? "查询中..." : "测试查询归档数据"}
+            </button>
+
+            <button
               onClick={runTestArchive}
               disabled={testLoading}
               className="inline-flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50"
