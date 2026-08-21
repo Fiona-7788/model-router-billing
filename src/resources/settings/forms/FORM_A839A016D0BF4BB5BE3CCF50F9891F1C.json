@@ -1,0 +1,111 @@
+{
+  "code": "FORM_A839A016D0BF4BB5BE3CCF50F9891F1C",
+  "formUuid": "FORM_A839A016D0BF4BB5BE3CCF50F9891F1C",
+  "settings": {
+    "code": "billing_data_archive",
+    "name": "账单数据归档",
+    "fields": [
+      {
+        "label": "归档日期",
+        "fieldId": "archive_date",
+        "required": true,
+        "placeholder": "选择归档日期",
+        "componentName": "DateField"
+      },
+      {
+        "label": "归档数据(JSON)",
+        "fieldId": "data_json",
+        "required": true,
+        "placeholder": "JSON格式的账单归档数据",
+        "componentName": "TextAreaField"
+      },
+      {
+        "label": "记录数",
+        "fieldId": "record_count",
+        "required": false,
+        "placeholder": "归档的记录条数",
+        "componentName": "NumberField"
+      },
+      {
+        "label": "归档类型",
+        "fieldId": "archive_type",
+        "options": [
+          {
+            "label": "每日归档",
+            "value": "daily"
+          },
+          {
+            "label": "手动归档",
+            "value": "manual"
+          }
+        ],
+        "required": true,
+        "componentName": "SelectField"
+      }
+    ],
+    "formType": "receipt",
+    "formUuid": "FORM_A839A016D0BF4BB5BE3CCF50F9891F1C",
+    "performance": {
+      "fieldIndexes": []
+    },
+    "runtime": {
+      "previewProcessBeforeSubmit": true,
+      "showApproverInfo": true,
+      "showChangeRecords": false
+    },
+    "runtimeWrite": {
+      "mode": "permission_group"
+    },
+    "revision": 2,
+    "etag": "\"form-5992f940-e876-4add-9a32-f19718319c33-r2\"",
+    "activeFormReleaseHead": {
+      "releaseId": "b9d19a0b-ac7f-46d9-93db-f60cb688c90f",
+      "releaseHash": "d717182b2a3ae2875a12274d21008dcce738bf6f959844d63a7205989c162675",
+      "artifactId": "form:settings:c234de66bb2c2b14f41ce916374b4a35",
+      "revision": 2,
+      "etag": "\"form-release-b9d19a0b-ac7f-46d9-93db-f60cb688c90f-r2\"",
+      "legacy": false
+    }
+  },
+  "indexes": {
+    "indexableFields": [],
+    "systemIndexes": [],
+    "customIndexes": [],
+    "revision": 2,
+    "etag": "\"form-5992f940-e876-4add-9a32-f19718319c33-r2\"",
+    "activeFormReleaseHead": {
+      "releaseId": "b9d19a0b-ac7f-46d9-93db-f60cb688c90f",
+      "releaseHash": "d717182b2a3ae2875a12274d21008dcce738bf6f959844d63a7205989c162675",
+      "artifactId": "form:settings:c234de66bb2c2b14f41ce916374b4a35",
+      "revision": 2,
+      "etag": "\"form-release-b9d19a0b-ac7f-46d9-93db-f60cb688c90f-r2\"",
+      "legacy": false
+    }
+  },
+  "dataManagement": {
+    "value": null,
+    "revision": 2,
+    "etag": "\"form-5992f940-e876-4add-9a32-f19718319c33-r2\"",
+    "activeFormReleaseHead": {
+      "releaseId": "b9d19a0b-ac7f-46d9-93db-f60cb688c90f",
+      "releaseHash": "d717182b2a3ae2875a12274d21008dcce738bf6f959844d63a7205989c162675",
+      "artifactId": "form:settings:c234de66bb2c2b14f41ce916374b4a35",
+      "revision": 2,
+      "etag": "\"form-release-b9d19a0b-ac7f-46d9-93db-f60cb688c90f-r2\"",
+      "legacy": false
+    }
+  },
+  "publicAccess": {
+    "value": null,
+    "revision": 2,
+    "etag": "\"form-5992f940-e876-4add-9a32-f19718319c33-r2\"",
+    "activeFormReleaseHead": {
+      "releaseId": "b9d19a0b-ac7f-46d9-93db-f60cb688c90f",
+      "releaseHash": "d717182b2a3ae2875a12274d21008dcce738bf6f959844d63a7205989c162675",
+      "artifactId": "form:settings:c234de66bb2c2b14f41ce916374b4a35",
+      "revision": 2,
+      "etag": "\"form-release-b9d19a0b-ac7f-46d9-93db-f60cb688c90f-r2\"",
+      "legacy": false
+    }
+  }
+}

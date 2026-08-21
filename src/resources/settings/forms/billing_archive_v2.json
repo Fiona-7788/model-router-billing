@@ -1,0 +1,65 @@
+{
+  "code": "billing_archive_v2",
+  "formCode": "billing_archive_v2",
+  "settings": {
+    "runtime": {
+      "previewProcessBeforeSubmit": true,
+      "showApproverInfo": true,
+      "showChangeRecords": false
+    },
+    "runtimeWrite": {
+      "mode": "permission_group"
+    },
+    "revision": 1,
+    "etag": "\"form-d8185874-9f60-4ae9-81be-e0c02ced5d2f-r1\"",
+    "activeFormReleaseHead": {
+      "releaseId": null,
+      "releaseHash": null,
+      "artifactId": null,
+      "revision": 1,
+      "etag": "\"form-release-none-r1\"",
+      "legacy": true
+    }
+  },
+  "indexes": {
+    "indexableFields": [],
+    "systemIndexes": [],
+    "customIndexes": [],
+    "revision": 1,
+    "etag": "\"form-d8185874-9f60-4ae9-81be-e0c02ced5d2f-r1\"",
+    "activeFormReleaseHead": {
+      "releaseId": null,
+      "releaseHash": null,
+      "artifactId": null,
+      "revision": 1,
+      "etag": "\"form-release-none-r1\"",
+      "legacy": true
+    }
+  },
+  "dataManagement": {
+    "value": null,
+    "revision": 1,
+    "etag": "\"form-d8185874-9f60-4ae9-81be-e0c02ced5d2f-r1\"",
+    "activeFormReleaseHead": {
+      "releaseId": null,
+      "releaseHash": null,
+      "artifactId": null,
+      "revision": 1,
+      "etag": "\"form-release-none-r1\"",
+      "legacy": true
+    }
+  },
+  "publicAccess": {
+    "value": null,
+    "revision": 1,
+    "etag": "\"form-d8185874-9f60-4ae9-81be-e0c02ced5d2f-r1\"",
+    "activeFormReleaseHead": {
+      "releaseId": null,
+      "releaseHash": null,
+      "artifactId": null,
+      "revision": 1,
+      "etag": "\"form-release-none-r1\"",
+      "legacy": true
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "默认提交权限",
+  "resourceCode": null,
+  "type": "submit",
+  "roles": [],
+  "platformRoleCodes": [],
+  "dataScope": [
+    {
+      "type": "all"
+    }
+  ],
+  "operations": [],
+  "fieldPermissions": [],
+  "fieldAccessPolicy": null,
+  "dataPermission": null,
+  "tenantId": "001",
+  "code": "5b0d8917-21fc-4653-8d02-38811a9f09b9",
+  "formCode": "billing_archive_v2"
+}

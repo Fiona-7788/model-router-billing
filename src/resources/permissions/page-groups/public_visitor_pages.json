@@ -4,6 +4,9 @@
   "roles": [
     "external_visitor"
   ],
+  "menuCodes": [
+    "billing_dashboard"
+  ],
   "routeCodes": [
     "public.register"
   ],

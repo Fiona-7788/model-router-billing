@@ -1,0 +1,8 @@
+{
+  "code": "form_management",
+  "name": "表单管理",
+  "type": "nav",
+  "sortOrder": 7,
+  "icon": "Database",
+  "isHidden": false
+}

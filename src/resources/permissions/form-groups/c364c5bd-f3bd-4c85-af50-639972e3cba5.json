@@ -1,0 +1,19 @@
+{
+  "name": "默认提交权限",
+  "resourceCode": null,
+  "type": "submit",
+  "roles": [],
+  "platformRoleCodes": [],
+  "dataScope": [
+    {
+      "type": "all"
+    }
+  ],
+  "operations": [],
+  "fieldPermissions": [],
+  "fieldAccessPolicy": null,
+  "dataPermission": null,
+  "tenantId": "001",
+  "code": "c364c5bd-f3bd-4c85-af50-639972e3cba5",
+  "formCode": "FORM_F52E3E6DA4874C5BB8B1E6B2FA41AD3A"
+}

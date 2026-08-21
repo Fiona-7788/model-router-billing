@@ -1,0 +1,19 @@
+{
+  "formUuid": "FORM_A839A016D0BF4BB5BE3CCF50F9891F1C",
+  "name": "默认提交权限",
+  "resourceCode": null,
+  "type": "submit",
+  "roles": [],
+  "platformRoleCodes": [],
+  "dataScope": [
+    {
+      "type": "all"
+    }
+  ],
+  "operations": [],
+  "fieldPermissions": [],
+  "fieldAccessPolicy": null,
+  "dataPermission": null,
+  "tenantId": "001",
+  "code": "9164b6ac-7972-4db7-993d-a34f0f693226"
+}

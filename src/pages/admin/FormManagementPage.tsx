@@ -178,6 +178,32 @@ export function FormManagementPage() {
             </button>
 
             <button
+              onClick={async () => {
+                setTestLoading(true);
+                setTestResult(null);
+                try {
+                  const response = await fetch(FUNCTION_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ input: { action: "test_create_one", params: {} } }),
+                  });
+                  const raw = await response.json();
+                  const result = raw.output ?? raw.data?.output ?? raw.data?.result ?? raw;
+                  setTestResult(result);
+                } catch (error: any) {
+                  setTestResult({ success: false, error: error.message });
+                }
+                setTestLoading(false);
+              }}
+              disabled={testLoading}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50"
+            >
+              <Database className={`w-4 h-4 ${testLoading ? "animate-spin" : ""}`} />
+              {testLoading ? "测试中..." : "测试 createOneData"}
+            </button>
+
+            <button
               onClick={runTestArchive}
               disabled={testLoading}
               className="inline-flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50"

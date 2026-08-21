@@ -1798,6 +1798,48 @@ export default async function(ctx: any) {
         result = { appType, formUuid, apiResults };
         break;
       }
+      case "test_create_one": {
+        // 直接测试 ctx.methods.createOneData
+        const appType = ctx?.app?.appType || "APP_DC40389CBE164B18AFAF";
+        const formUuid = ARCHIVE_FORM_UUID;
+        const testResults: Record<string, any> = {};
+        
+        // 检查 resourceBindings
+        testResults.resourceBindings = ctx?.resourceBindings || {};
+        testResults.resourceBindings_forms = ctx?.resources?.bindings?.forms || [];
+        
+        // 测试 createOneData
+        try {
+          const result = await ctx.methods.createOneData({
+            formUuid,
+            formData: {
+              archive_date: Date.now(),
+              data_json: JSON.stringify({ test: true }),
+              record_count: 1,
+              archive_type: "test",
+            },
+          });
+          testResults.createOneData = { success: true, result };
+        } catch (e: any) {
+          testResults.createOneData = { error: e?.message, stack: e?.stack?.slice(0, 500) };
+        }
+        
+        // 也测试 queryManyData
+        try {
+          const result = await ctx.methods.queryManyData({
+            formUuid,
+            searchCondition: {},
+            currentPage: 1,
+            pageSize: 10,
+          });
+          testResults.queryManyData = { success: true, result };
+        } catch (e: any) {
+          testResults.queryManyData = { error: e?.message };
+        }
+        
+        result = { appType, formUuid, ...testResults };
+        break;
+      }
       case "diagnose_full": {
         // 返回完整的 JSON 诊断信息，不被截断
         const ctxKeys = Object.keys(ctx || {});
