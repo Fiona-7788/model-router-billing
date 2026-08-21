@@ -1602,6 +1602,58 @@ export default async function(ctx: any) {
         result = { ctxKeys, ctxDetail };
         break;
       }
+      case "diagnose_full": {
+        // 返回完整的 JSON 诊断信息，不被截断
+        const ctxKeys = Object.keys(ctx || {});
+        const ctxDetail: Record<string, any> = {};
+        for (const key of ctxKeys) {
+          const val = ctx[key];
+          if (val && typeof val === 'object' && !Array.isArray(val)) {
+            const methods = Object.keys(val).filter(k => typeof val[k] === 'function');
+            const props = Object.keys(val).filter(k => typeof val[k] !== 'function');
+            const propValues: Record<string, any> = {};
+            for (const p of props.slice(0, 20)) {
+              try { propValues[p] = typeof val[p] === 'object' ? JSON.stringify(val[p]).slice(0, 500) : String(val[p]).slice(0, 500); } catch { propValues[p] = 'N/A'; }
+            }
+            ctxDetail[key] = { methods, props: propValues };
+          } else if (typeof val === 'function') {
+            ctxDetail[key] = { type: 'function', sig: val.toString().slice(0, 200) };
+          } else {
+            ctxDetail[key] = { type: typeof val, value: val === null ? 'null' : String(val).slice(0, 500) };
+          }
+        }
+        
+        // 额外诊断：尝试列出可用的 connector codes
+        if (ctx?.connector) {
+          const connectorKeys = Object.keys(ctx.connector);
+          const connectorMethods = connectorKeys.filter(k => typeof ctx.connector[k] === 'function');
+          ctxDetail['connector_extra'] = { keys: connectorKeys, methods: connectorMethods };
+          
+          // 尝试 resolveConnector 看有哪些可用的 connectors
+          try {
+            const allConnectors = await ctx.connector.resolveConnector?.() || [];
+            ctxDetail['available_connectors'] = Array.isArray(allConnectors) ? allConnectors.map((c: any) => c.code || c.name || c).slice(0, 50) : 'N/A';
+          } catch (e: any) {
+            ctxDetail['available_connectors_error'] = e?.message?.slice(0, 500);
+          }
+          
+          // 尝试用常见 connector codes 调用
+          const commonCodes = ['openxiangda', 'platform', 'yida', 'internal', 'system'];
+          const connectorResults: Record<string, any> = {};
+          for (const code of commonCodes) {
+            try {
+              const r = await ctx.connector.invoke(code, { method: 'GET', path: '/test' });
+              connectorResults[code] = { success: true, type: typeof r };
+            } catch (e: any) {
+              connectorResults[code] = { error: e?.message?.slice(0, 100) };
+            }
+          }
+          ctxDetail['connector_test_results'] = connectorResults;
+        }
+        
+        result = { ctxKeys, ctxDetail };
+        break;
+      }
       default:
         throw new Error(`未知的 action: ${action}。支持的 actions: billingCostTabs, costOverview, costTrend, modelCostList, companyCostSummary, callSources, clientList, archiveBillingData, queryLocalBillingData [v4]`);
     }
