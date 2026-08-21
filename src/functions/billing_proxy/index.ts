@@ -1184,7 +1184,9 @@ async function queryLocalBillingData(ctx: any, params: any) {
       try {
         queryAttempts.push("http:platformAPI");
         const appType = ctx?.app?.appType || "APP_DC40389CBE164B18AFAF";
-        const url = `/service/openxiangda-api/v1/apps/${appType}/forms/${ARCHIVE_FORM_UUID}/data?page=1&pageSize=100`;
+        const publicOrigin = ctx?.runtime?.environment ? (() => { try { return JSON.parse(ctx.runtime.environment)?.publicOrigin || "https://yida.wisejob.cn"; } catch { return "https://yida.wisejob.cn"; } })() : "https://yida.wisejob.cn";
+        const url = `${publicOrigin}/service/openxiangda-api/v1/apps/${appType}/forms/${ARCHIVE_FORM_UUID}/data?page=1&pageSize=100`;
+        console.log(`HTTP platform API URL: ${url}`);
         const response = await ctx.utils.http.get(url);
         const data = response?.data ?? response;
         console.log(`HTTP platform API response type:`, typeof data, Array.isArray(data) ? `array[${data.length}]` : JSON.stringify(data).slice(0, 200));
