@@ -11,9 +11,9 @@ export function FormManagementPage() {
   const [diagResult, setDiagResult] = useState<any>(null);
   const [diagLoading, setDiagLoading] = useState(false);
 
-  // 平台原生表单设计器 URL（完整 URL，不是 SPA 代理路径）
-  const platformFormUrl = `https://yida.wisejob.cn/view/${APP_TYPE}/admin/forms/${ARCHIVE_FORM_UUID}`;
-  const platformFormListUrl = `https://yida.wisejob.cn/view/${APP_TYPE}/admin/forms`;
+  // 平台原生表单设计器 URL（平台管理台，不是 SPA 路由）
+  const platformFormUrl = `https://yida.wisejob.cn/admin/forms/${ARCHIVE_FORM_UUID}`;
+  const platformFormListUrl = `https://yida.wisejob.cn/admin/forms`;
 
   const runDiagnose = async () => {
     setDiagLoading(true);
@@ -99,7 +99,7 @@ export function FormManagementPage() {
                 请按照以下步骤操作：
               </p>
               <ol className="list-decimal list-inside text-sm text-red-700 mt-2 space-y-1">
-                <li>点击下方按钮打开表单设计器</li>
+                <li>点击下方按钮打开表单设计器（如果 404，请在平台管理台的「表单管理」中找到「账单归档V2」）</li>
                 <li>在表单设计器中添加以下字段：
                   <ul className="list-disc list-inside ml-4 mt-1">
                     <li><strong>归档日期</strong>（日期类型 DateField）</li>
@@ -111,6 +111,9 @@ export function FormManagementPage() {
                 <li>点击「保存」按钮</li>
                 <li>返回此页面，点击「检查表单状态」验证</li>
               </ol>
+              <p className="text-xs text-red-600 mt-2">
+                表单 UUID: {ARCHIVE_FORM_UUID}
+              </p>
             </div>
           </div>
 
@@ -123,6 +126,16 @@ export function FormManagementPage() {
             >
               <ExternalLink className="w-4 h-4" />
               打开表单设计器（添加字段）
+            </a>
+            
+            <a
+              href={platformFormListUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+            >
+              <ExternalLink className="w-4 h-4" />
+              打开平台表单列表
             </a>
             
             <button
