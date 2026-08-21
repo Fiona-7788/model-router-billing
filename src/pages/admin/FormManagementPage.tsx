@@ -10,10 +10,31 @@ export function FormManagementPage() {
   const [message, setMessage] = useState("");
   const [diagResult, setDiagResult] = useState<any>(null);
   const [diagLoading, setDiagLoading] = useState(false);
+  const [testResult, setTestResult] = useState<any>(null);
+  const [testLoading, setTestLoading] = useState(false);
 
   // 平台原生表单设计器 URL（平台管理台，不是 SPA 路由）
   const platformFormUrl = `https://yida.wisejob.cn/admin/forms/${ARCHIVE_FORM_UUID}`;
   const platformFormListUrl = `https://yida.wisejob.cn/admin/forms`;
+
+  const runTestArchive = async () => {
+    setTestLoading(true);
+    setTestResult(null);
+    try {
+      const response = await fetch(FUNCTION_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ input: { action: "archiveBillingData", params: { date: new Date().toISOString().split("T")[0] } } }),
+      });
+      const raw = await response.json();
+      const result = raw.output ?? raw.data?.output ?? raw.data?.result ?? raw;
+      setTestResult(result);
+    } catch (error: any) {
+      setTestResult({ success: false, error: error.message });
+    }
+    setTestLoading(false);
+  };
 
   const runDiagnose = async () => {
     setDiagLoading(true);
@@ -155,7 +176,25 @@ export function FormManagementPage() {
               <Stethoscope className={`w-4 h-4 ${diagLoading ? "animate-spin" : ""}`} />
               {diagLoading ? "诊断中..." : "诊断 ctx API"}
             </button>
+
+            <button
+              onClick={runTestArchive}
+              disabled={testLoading}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50"
+            >
+              <Database className={`w-4 h-4 ${testLoading ? "animate-spin" : ""}`} />
+              {testLoading ? "测试中..." : "测试归档（今日数据）"}
+            </button>
           </div>
+
+          {testResult && (
+            <div className="p-4 rounded-lg bg-orange-50 text-orange-900">
+              <h4 className="font-medium mb-2">归档测试结果：</h4>
+              <pre className="text-xs overflow-auto max-h-60 bg-white p-3 rounded border">
+                {JSON.stringify(testResult, null, 2)}
+              </pre>
+            </div>
+          )}
 
           {diagResult && (
             <div className="p-4 rounded-lg bg-purple-50 text-purple-900">
