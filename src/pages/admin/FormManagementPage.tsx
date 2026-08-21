@@ -370,6 +370,33 @@ export function FormManagementPage() {
               <Stethoscope className={`w-4 h-4 ${testLoading ? "animate-spin" : ""}`} />
               {testLoading ? "探测中..." : "探测字段ID+测试写入"}
             </button>
+
+            <button
+              onClick={async () => {
+                setTestLoading(true);
+                setTestResult(null);
+                try {
+                  const response = await fetch(FUNCTION_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ input: { action: "test_write_formats", params: {} } }),
+                  });
+                  const raw = await response.json();
+                  const result = raw.output ?? raw.data?.output ?? raw.data?.result ?? raw;
+                  setTestResult(result);
+                } catch (error: any) {
+                  setTestResult({ error: error.message });
+                } finally {
+                  setTestLoading(false);
+                }
+              }}
+              disabled={testLoading}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50"
+            >
+              <Stethoscope className={`w-4 h-4 ${testLoading ? "animate-spin" : ""}`} />
+              {testLoading ? "测试写入格式中..." : "测试6种写入格式"}
+            </button>
           </div>
 
           {testResult && (

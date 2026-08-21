@@ -1536,6 +1536,90 @@ export default async function(ctx: any) {
         result = fieldResult;
         break;
       }
+      case "test_write_formats": {
+        // 测试不同的参数格式，找出哪个能真正写入数据
+        const writeResult: Record<string, any> = {};
+        const testData = { archive_date: Date.now(), data_json: '{"test":"format_test","date":"2026-08-21"}', record_count: 99, archive_type: 'write_test' };
+        
+        // 格式1: formData (当前用法)
+        try {
+          const r = await ctx.form.createOne({ formUuid: ARCHIVE_FORM_UUID, formData: testData });
+          writeResult['format1_formData'] = { formInstId: r?.formInstId, success: !!r?.formInstId };
+          // 回查
+          if (r?.formInstId) {
+            const q = await ctx.form.queryMany({ formUuid: ARCHIVE_FORM_UUID, currentPage: 1, pageSize: 10 });
+            const items = q?.data || q?.resultList || q || [];
+            const found = Array.isArray(items) ? items.find((i: any) => i.formInstId === r.formInstId) : null;
+            writeResult['format1_verify'] = found ? { archive_date: found.archive_date, data_json: found.data_json } : 'not found';
+          }
+        } catch (e: any) { writeResult['format1_formData'] = { error: e?.message?.slice(0, 200) }; }
+        
+        // 格式2: data 而不是 formData
+        try {
+          const r = await ctx.form.createOne({ formUuid: ARCHIVE_FORM_UUID, data: testData });
+          writeResult['format2_data'] = { formInstId: r?.formInstId, success: !!r?.formInstId };
+          if (r?.formInstId) {
+            const q = await ctx.form.queryMany({ formUuid: ARCHIVE_FORM_UUID, currentPage: 1, pageSize: 10 });
+            const items = q?.data || q?.resultList || q || [];
+            const found = Array.isArray(items) ? items.find((i: any) => i.formInstId === r.formInstId) : null;
+            writeResult['format2_verify'] = found ? { archive_date: found.archive_date, data_json: found.data_json } : 'not found';
+          }
+        } catch (e: any) { writeResult['format2_data'] = { error: e?.message?.slice(0, 200) }; }
+        
+        // 格式3: 直接传 formData 作为顶层参数
+        try {
+          const r = await ctx.form.createOne({ ...testData, formUuid: ARCHIVE_FORM_UUID });
+          writeResult['format3_spread'] = { formInstId: r?.formInstId, success: !!r?.formInstId };
+          if (r?.formInstId) {
+            const q = await ctx.form.queryMany({ formUuid: ARCHIVE_FORM_UUID, currentPage: 1, pageSize: 10 });
+            const items = q?.data || q?.resultList || q || [];
+            const found = Array.isArray(items) ? items.find((i: any) => i.formInstId === r.formInstId) : null;
+            writeResult['format3_verify'] = found ? { archive_date: found.archive_date, data_json: found.data_json } : 'not found';
+          }
+        } catch (e: any) { writeResult['format3_spread'] = { error: e?.message?.slice(0, 200) }; }
+        
+        // 格式4: methods.createOneData 直接调用
+        try {
+          const r = await ctx.methods.createOneData(ctx?.app?.appType || 'APP_DC40389CBE164B18AFAF', ARCHIVE_FORM_UUID, testData);
+          writeResult['format4_methodsDirect'] = { formInstId: r?.formInstId, success: !!r?.formInstId };
+          if (r?.formInstId) {
+            const q = await ctx.form.queryMany({ formUuid: ARCHIVE_FORM_UUID, currentPage: 1, pageSize: 10 });
+            const items = q?.data || q?.resultList || q || [];
+            const found = Array.isArray(items) ? items.find((i: any) => i.formInstId === r.formInstId) : null;
+            writeResult['format4_verify'] = found ? { archive_date: found.archive_date, data_json: found.data_json } : 'not found';
+          }
+        } catch (e: any) { writeResult['format4_methodsDirect'] = { error: e?.message?.slice(0, 200) }; }
+        
+        // 格式5: methods.createOneData 用 formData 包装
+        try {
+          const r = await ctx.methods.createOneData(ctx?.app?.appType || 'APP_DC40389CBE164B18AFAF', ARCHIVE_FORM_UUID, { formData: testData });
+          writeResult['format5_methodsFormData'] = { formInstId: r?.formInstId, success: !!r?.formInstId };
+          if (r?.formInstId) {
+            const q = await ctx.form.queryMany({ formUuid: ARCHIVE_FORM_UUID, currentPage: 1, pageSize: 10 });
+            const items = q?.data || q?.resultList || q || [];
+            const found = Array.isArray(items) ? items.find((i: any) => i.formInstId === r.formInstId) : null;
+            writeResult['format5_verify'] = found ? { archive_date: found.archive_date, data_json: found.data_json } : 'not found';
+          }
+        } catch (e: any) { writeResult['format5_methodsFormData'] = { error: e?.message?.slice(0, 200) }; }
+        
+        // 格式6: getById 查看完整记录结构
+        try {
+          const q = await ctx.form.queryMany({ formUuid: ARCHIVE_FORM_UUID, currentPage: 1, pageSize: 1 });
+          const items = q?.data || q?.resultList || q || [];
+          if (Array.isArray(items) && items.length > 0) {
+            const instId = items[0].formInstId;
+            const fullRecord = await ctx.form.getById({ formUuid: ARCHIVE_FORM_UUID, formInstanceId: instId });
+            writeResult['format6_getById'] = {
+              type: typeof fullRecord,
+              keys: fullRecord && typeof fullRecord === 'object' ? Object.keys(fullRecord) : [],
+              sample: JSON.stringify(fullRecord).slice(0, 2000),
+            };
+          }
+        } catch (e: any) { writeResult['format6_getById'] = { error: e?.message?.slice(0, 200) }; }
+        
+        result = writeResult;
+        break;
+      }
       case "diagnose": {
         const ctxKeys = Object.keys(ctx || {});
         const ctxDetail: Record<string, any> = {};
