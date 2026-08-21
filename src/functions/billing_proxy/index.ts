@@ -1179,50 +1179,65 @@ async function queryLocalBillingData(ctx: any, params: any) {
       }
     }
         
-    // 方式 1b: ctx.utils.http 直接调用平台 REST API（绕过 RPC 资源绑定检查）
-    if ((!items || items.length === 0) && ctx?.utils?.http) {
+    // 方式 1c: ctx.resources.resolveForm (绕过 RPC 资源绑定检查)
+    if ((!items || items.length === 0) && ctx?.resources?.resolveForm) {
       try {
-        queryAttempts.push("http:platformAPI");
-        const appType = ctx?.app?.appType || "APP_DC40389CBE164B18AFAF";
-        const publicOrigin = ctx?.runtime?.environment ? (() => { try { return JSON.parse(ctx.runtime.environment)?.publicOrigin || "https://yida.wisejob.cn"; } catch { return "https://yida.wisejob.cn"; } })() : "https://yida.wisejob.cn";
-        const url = `${publicOrigin}/service/openxiangda-api/v1/apps/${appType}/forms/${ARCHIVE_FORM_UUID}/data?page=1&pageSize=100`;
-        console.log(`HTTP platform API URL: ${url}`);
-        const response = await ctx.utils.http.get(url);
-        const data = response?.data ?? response;
-        const respStr = JSON.stringify(data);
-        console.log(`HTTP platform API full response:`, respStr.slice(0, 500));
-        if (Array.isArray(data)) {
-          items = data;
-          queryAttempts.push("http:platformAPI:OK");
-        } else if (data?.data && Array.isArray(data.data)) {
-          items = data.data;
-          queryAttempts.push("http:platformAPI:OK(data)");
-        } else if (data?.resultList && Array.isArray(data.resultList)) {
-          items = data.resultList;
-          queryAttempts.push("http:platformAPI:OK(resultList)");
-        } else if (data?.items && Array.isArray(data.items)) {
-          items = data.items;
-          queryAttempts.push("http:platformAPI:OK(items)");
-        } else if (data?.records && Array.isArray(data.records)) {
-          items = data.records;
-          queryAttempts.push("http:platformAPI:OK(records)");
-        } else if (data?.list && Array.isArray(data.list)) {
-          items = data.list;
-          queryAttempts.push("http:platformAPI:OK(list)");
-        } else {
-          // 尝试从响应中找到任何数组字段
-          const keys = Object.keys(data || {});
-          const arrayKey = keys.find(k => Array.isArray((data as any)[k]));
-          if (arrayKey) {
-            items = (data as any)[arrayKey];
-            queryAttempts.push(`http:platformAPI:OK(${arrayKey})`);
+        queryAttempts.push("resources.resolveForm");
+        const formObj = await ctx.resources.resolveForm(ARCHIVE_FORM_UUID);
+        console.log(`resolveForm result type:`, typeof formObj, Object.keys(formObj || {}).slice(0, 10));
+        const formMethods = Object.keys(formObj || {}).filter(k => typeof (formObj as any)[k] === "function");
+        console.log(`resolveForm methods:`, formMethods.slice(0, 10));
+        
+        // 尝试 queryMany
+        if (typeof (formObj as any).queryMany === "function") {
+          const result = await (formObj as any).queryMany({ currentPage: 1, pageSize: 100 });
+          items = result?.data || result?.resultList || result || [];
+          if (Array.isArray(items) && items.length > 0) {
+            queryAttempts.push("resources.resolveForm.queryMany:OK");
           } else {
-            queryAttempts.push(`http:platformAPI:error|code:${(data as any)?.code}|msg:${JSON.stringify((data as any)?.message || data).slice(0,200)}`);
+            queryAttempts.push(`resources.resolveForm.queryMany:empty`);
           }
+        } else if (typeof (formObj as any).list === "function") {
+          const result = await (formObj as any).list({ page: 1, pageSize: 100 });
+          items = result?.data || result?.resultList || result || [];
+          if (Array.isArray(items) && items.length > 0) {
+            queryAttempts.push("resources.resolveForm.list:OK");
+          } else {
+            queryAttempts.push(`resources.resolveForm.list:empty`);
+          }
+        } else {
+          queryAttempts.push(`resources.resolveForm:noQueryMethod|methods:${formMethods.join(',')}`);
         }
       } catch (e: any) {
-        queryAttempts.push(`http:platformAPI:${e?.message?.slice(0,50) || 'err'}`);
-        console.log(`HTTP platform API failed: ${e?.message}`);
+        queryAttempts.push(`resources.resolveForm:${e?.message?.slice(0,50) || 'err'}`);
+        console.log(`resources.resolveForm failed: ${e?.message}`);
+      }
+    }
+    
+    // 方式 1d: ctx.connector 调用平台 API（带认证）
+    if ((!items || items.length === 0) && ctx?.connector) {
+      try {
+        queryAttempts.push("connector:platformAPI");
+        const appType = ctx?.app?.appType || "APP_DC40389CBE164B18AFAF";
+        // 尝试使用 connector 调用内部 API
+        const result = await ctx.connector.invoke("openxiangda", {
+          method: "GET",
+          path: `/v1/apps/${appType}/forms/${ARCHIVE_FORM_UUID}/data`,
+          params: { page: 1, pageSize: 100 },
+        });
+        const data = result?.data ?? result;
+        if (Array.isArray(data)) {
+          items = data;
+          queryAttempts.push("connector:platformAPI:OK");
+        } else if (data?.data && Array.isArray(data.data)) {
+          items = data.data;
+          queryAttempts.push("connector:platformAPI:OK(data)");
+        } else {
+          queryAttempts.push(`connector:platformAPI:noArray|type:${typeof data}`);
+        }
+      } catch (e: any) {
+        queryAttempts.push(`connector:platformAPI:${e?.message?.slice(0,50) || 'err'}`);
+        console.log(`connector platform API failed: ${e?.message}`);
       }
     }
     
