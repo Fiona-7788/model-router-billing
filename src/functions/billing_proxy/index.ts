@@ -1206,32 +1206,39 @@ async function queryLocalBillingData(ctx: any, params: any) {
       console.log(`data_json raw (前200字):`, JSON.stringify(fd.data_json || '').slice(0, 200));
     }
     
-    // 在返回的结果中按日期过滤（兼容多种日期格式）
+    // 在返回的结果中按日期过滤（多重匹配策略）
     const matchedItems = Array.isArray(items) ? items.filter((item: any) => {
       const formData = typeof item.formData === "string" 
         ? JSON.parse(item.formData) 
         : item.formData || item;
+      
+      // 策略1: 从 data_json 内部提取 date 字段匹配（最可靠，不受 DateField 格式影响）
+      try {
+        const dataJsonRaw = formData.data_json;
+        if (dataJsonRaw) {
+          const dataJson = typeof dataJsonRaw === "string" ? JSON.parse(dataJsonRaw) : dataJsonRaw;
+          if (dataJson?.date === targetDate) return true;
+        }
+      } catch (_e) { /* data_json 解析失败，继续其他策略 */ }
+      
+      // 策略2: 匹配 archive_date 字段
       const archiveDate = formData.archive_date;
       if (!archiveDate) return false;
       
+      // 直接字符串匹配
+      if (typeof archiveDate === "string" && archiveDate.startsWith(targetDate)) return true;
+      
+      // 时间戳匹配
       let ts: number;
       if (typeof archiveDate === "number") {
-        // 毫秒时间戳或秒时间戳
         ts = archiveDate > 1e12 ? archiveDate : archiveDate * 1000;
       } else if (typeof archiveDate === "string") {
-        // 日期字符串 "2026-08-21" 或 ISO 格式
         const parsed = new Date(archiveDate).getTime();
         if (isNaN(parsed)) return false;
         ts = parsed;
       } else {
         return false;
       }
-      
-      // 也支持直接匹配日期字符串
-      if (typeof archiveDate === "string" && archiveDate.startsWith(targetDate)) {
-        return true;
-      }
-      
       return ts >= dayStart * 1000 && ts < dayEnd * 1000;
     }) : [];
     
