@@ -1727,6 +1727,77 @@ export default async function(ctx: any) {
         result = { formMethods, formTests, platformApiInfo, formInfo, archiveFormUuid: formUuid };
         break;
       }
+      case "test_platform_api": {
+        // 系统性测试 ctx.platform.api 的各种路径，找到可用的表单数据 API
+        const appType = ctx?.app?.appType || "APP_DC40389CBE164B18AFAF";
+        const formUuid = ARCHIVE_FORM_UUID;
+        const apiResults: Record<string, any> = {};
+        
+        // GET 路径测试
+        const getPaths = [
+          `/api/v1/apps/${appType}/forms/${formUuid}/instances`,
+          `/api/v1/apps/${appType}/forms/${formUuid}/data`,
+          `/api/v1/forms/${formUuid}/instances`,
+          `/api/v1/forms/${formUuid}/data`,
+          `/v1/apps/${appType}/forms/${formUuid}/instances`,
+          `/v1/apps/${appType}/forms/${formUuid}/data`,
+          `/v1/forms/${formUuid}/instances`,
+          `/v1/forms/${formUuid}/data`,
+          `/api/v1/form/${formUuid}/instances`,
+          `/api/v1/form/${formUuid}/data`,
+          `/api/v1/form-data/${formUuid}`,
+          `/api/v1/apps/${appType}/form-data`,
+          `/api/v1/apps/${appType}/forms/${formUuid}/schema`,
+          `/api/v1/forms/${formUuid}/schema`,
+          `/v1/apps/${appType}/forms/${formUuid}/schema`,
+          `/dingtalk/v1.0/yidaFormApp/instances/search`,
+          `/dingtalk/v1.0/yida/forms/instances/${formUuid}`,
+          `/api/dingtalk/v1.0/yidaFormApp/instances/search`,
+          `/api/v1/apps/${appType}/data/${formUuid}`,
+          `/v1/apps/${appType}/data/${formUuid}`,
+        ];
+        
+        for (const path of getPaths) {
+          try {
+            const r = await ctx.platform.api.get(path, {});
+            apiResults[`GET:${path}`] = { success: true, type: typeof r, sample: JSON.stringify(r).slice(0, 300) };
+          } catch (e: any) {
+            apiResults[`GET:${path}`] = { error: e?.message?.slice(0, 150) };
+          }
+        }
+        
+        // POST 路径测试（只测试 schema 同步/初始化相关的）
+        const postTests = [
+          { path: `/api/v1/apps/${appType}/forms/${formUuid}/schema/sync`, data: {} },
+          { path: `/api/v1/forms/${formUuid}/schema/sync`, data: {} },
+          { path: `/api/v1/forms/${formUuid}/init`, data: {} },
+          { path: `/api/v1/apps/${appType}/forms/${formUuid}/init`, data: {} },
+          { path: `/api/v1/apps/${appType}/forms/${formUuid}/dataTable/init`, data: {} },
+          { path: `/api/v1/forms/${formUuid}/dataTable/init`, data: {} },
+          { path: `/api/v1/form/${formUuid}/sync`, data: {} },
+          { path: `/api/v1/form/${formUuid}/init-data-table`, data: {} },
+        ];
+        
+        for (const t of postTests) {
+          try {
+            const r = await ctx.platform.api.post(t.path, t.data);
+            apiResults[`POST:${t.path}`] = { success: true, type: typeof r, sample: JSON.stringify(r).slice(0, 300) };
+          } catch (e: any) {
+            apiResults[`POST:${t.path}`] = { error: e?.message?.slice(0, 150) };
+          }
+        }
+        
+        // 也测试用 request 方法直接调用
+        try {
+          const r = await ctx.platform.api.request({ path: `/api/v1/apps/${appType}/forms/${formUuid}/instances`, method: 'GET' });
+          apiResults['request:instances'] = { success: true, sample: JSON.stringify(r).slice(0, 300) };
+        } catch (e: any) {
+          apiResults['request:instances'] = { error: e?.message?.slice(0, 150) };
+        }
+        
+        result = { appType, formUuid, apiResults };
+        break;
+      }
       case "diagnose_full": {
         // 返回完整的 JSON 诊断信息，不被截断
         const ctxKeys = Object.keys(ctx || {});

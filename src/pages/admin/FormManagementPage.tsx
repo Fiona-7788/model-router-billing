@@ -23,7 +23,7 @@ export function FormManagementPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ input: { action: "test_form_api", params: {} } }),
+        body: JSON.stringify({ input: { action: "test_platform_api", params: {} } }),
       });
       const raw = await response.json();
       const result = raw.output ?? raw.data?.output ?? raw.data?.result ?? raw;
