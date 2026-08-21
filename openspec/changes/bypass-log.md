@@ -1713,3 +1713,10 @@
 - targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
 - followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
 - user: fengyujing
+## 2026-08-21T03:33:50.066Z
+
+- command: openxiangda runtime deploy
+- reason: v45 前端+函数
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
