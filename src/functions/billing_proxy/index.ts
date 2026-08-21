@@ -1189,7 +1189,8 @@ async function queryLocalBillingData(ctx: any, params: any) {
         console.log(`HTTP platform API URL: ${url}`);
         const response = await ctx.utils.http.get(url);
         const data = response?.data ?? response;
-        console.log(`HTTP platform API response type:`, typeof data, Array.isArray(data) ? `array[${data.length}]` : JSON.stringify(data).slice(0, 200));
+        const respStr = JSON.stringify(data);
+        console.log(`HTTP platform API full response:`, respStr.slice(0, 500));
         if (Array.isArray(data)) {
           items = data;
           queryAttempts.push("http:platformAPI:OK");
@@ -1202,8 +1203,22 @@ async function queryLocalBillingData(ctx: any, params: any) {
         } else if (data?.items && Array.isArray(data.items)) {
           items = data.items;
           queryAttempts.push("http:platformAPI:OK(items)");
+        } else if (data?.records && Array.isArray(data.records)) {
+          items = data.records;
+          queryAttempts.push("http:platformAPI:OK(records)");
+        } else if (data?.list && Array.isArray(data.list)) {
+          items = data.list;
+          queryAttempts.push("http:platformAPI:OK(list)");
         } else {
-          queryAttempts.push(`http:platformAPI:noArray|type:${typeof data}`);
+          // 尝试从响应中找到任何数组字段
+          const keys = Object.keys(data || {});
+          const arrayKey = keys.find(k => Array.isArray((data as any)[k]));
+          if (arrayKey) {
+            items = (data as any)[arrayKey];
+            queryAttempts.push(`http:platformAPI:OK(${arrayKey})`);
+          } else {
+            queryAttempts.push(`http:platformAPI:noArray|keys:${keys.join(',')}`);
+          }
         }
       } catch (e: any) {
         queryAttempts.push(`http:platformAPI:${e?.message?.slice(0,50) || 'err'}`);
