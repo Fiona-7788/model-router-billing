@@ -1840,6 +1840,57 @@ export default async function(ctx: any) {
         result = { appType, formUuid, ...testResults };
         break;
       }
+      case "quick_test": {
+        // 快速测试 ctx.form.createOne 在 release 激活后是否工作
+        const formUuid = ARCHIVE_FORM_UUID;
+        const results: Record<string, any> = {};
+        
+        try {
+          const r = await ctx.form.createOne({
+            formUuid,
+            formData: {
+              archive_date: Date.now(),
+              data_json: JSON.stringify({ test: "quick_test" }),
+              record_count: 1,
+              archive_type: "quick_test",
+            },
+          });
+          results.createOne = { success: true, result: JSON.stringify(r).slice(0, 500) };
+        } catch (e: any) {
+          results.createOne = { error: e?.message };
+        }
+        
+        try {
+          const r = await ctx.form.queryMany({
+            formUuid,
+            searchCondition: {},
+            currentPage: 1,
+            pageSize: 10,
+          });
+          results.queryMany = { success: true, result: JSON.stringify(r).slice(0, 500) };
+        } catch (e: any) {
+          results.queryMany = { error: e?.message };
+        }
+        
+        // 也测试 methods.createOneData
+        try {
+          const r = await ctx.methods.createOneData({
+            formUuid,
+            formData: {
+              archive_date: Date.now(),
+              data_json: JSON.stringify({ test: "quick_test_methods" }),
+              record_count: 1,
+              archive_type: "quick_test",
+            },
+          });
+          results.methodsCreateOne = { success: true, result: JSON.stringify(r).slice(0, 500) };
+        } catch (e: any) {
+          results.methodsCreateOne = { error: e?.message };
+        }
+        
+        result = results;
+        break;
+      }
       case "test_all_apis": {
         // 全面测试所有可用的存储 API
         const appType = ctx?.app?.appType || "APP_DC40389CBE164B18AFAF";

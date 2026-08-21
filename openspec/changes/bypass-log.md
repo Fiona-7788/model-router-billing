@@ -1944,3 +1944,73 @@
 - targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
 - followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
 - user: fengyujing
+## 2026-08-21T08:37:50.724Z
+
+- command: openxiangda runtime deploy
+- reason: v59 前端部署
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-21T08:38:15.928Z
+
+- command: openxiangda runtime deploy
+- reason: v58 前端+函数部署
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-21T08:38:39.113Z
+
+- command: openxiangda runtime deploy
+- reason: v58 前端+函数部署
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-21T08:38:59.317Z
+
+- command: openxiangda runtime deploy
+- reason: v58 前端+函数部署
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-21T08:40:25.524Z
+
+- command: openxiangda runtime deploy
+- reason: v58 前端+函数部署
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-21T08:56:59.483Z
+
+- command: openxiangda runtime deploy
+- reason: v58 前端+函数部署
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-21T08:57:07.596Z
+
+- command: openxiangda runtime deploy
+- reason: v58 前端+函数部署
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-21T08:57:19.062Z
+
+- command: openxiangda runtime deploy
+- reason: v58 前端+函数部署
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-21T09:01:00.298Z
+
+- command: openxiangda resource publish
+- reason: 触发表单 schema 同步以初始化数据表
+- targets: {"forms":["billing_archive_v2"],"pages":[],"functions":[],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-21T09:01:16.595Z
+
+- command: openxiangda resource publish
+- reason: 触发表单 schema 同步以初始化数据表
+- targets: {"forms":["billing_archive_v2"],"pages":[],"functions":[],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing

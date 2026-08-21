@@ -1,65 +1,135 @@
 {
   "code": "billing_archive_v2",
   "formCode": "billing_archive_v2",
+  "schema": {
+    "componentsTree": [
+      {
+        "componentName": "Page",
+        "id": "node_dockcviv8fo1",
+        "props": {
+          "fieldId": "Page_a17a2475"
+        },
+        "children": [
+          {
+            "componentName": "TextField",
+            "id": "node_field_archive_type",
+            "props": {
+              "fieldId": "archive_type",
+              "fieldName": "archive_type",
+              "label": "归档类型",
+              "isFormComponent": true,
+              "required": false
+            }
+          },
+          {
+            "componentName": "NumberField",
+            "id": "node_field_record_count",
+            "props": {
+              "fieldId": "record_count",
+              "fieldName": "record_count",
+              "label": "记录数",
+              "isFormComponent": true,
+              "required": false
+            }
+          },
+          {
+            "componentName": "DateField",
+            "id": "node_field_archive_date",
+            "props": {
+              "fieldId": "archive_date",
+              "fieldName": "archive_date",
+              "label": "归档日期",
+              "isFormComponent": true,
+              "required": true
+            }
+          },
+          {
+            "componentName": "TextareaField",
+            "id": "node_field_data_json",
+            "props": {
+              "fieldId": "data_json",
+              "fieldName": "data_json",
+              "label": "数据JSON",
+              "isFormComponent": true,
+              "required": true
+            }
+          }
+        ]
+      }
+    ]
+  },
   "settings": {
+    "etag": "\"form-d8185874-9f60-4ae9-81be-e0c02ced5d2f-r2\"",
     "runtime": {
       "previewProcessBeforeSubmit": true,
       "showApproverInfo": true,
       "showChangeRecords": false
     },
+    "revision": 2,
+    "performance": {
+      "fieldIndexes": []
+    },
     "runtimeWrite": {
       "mode": "permission_group"
     },
-    "revision": 1,
-    "etag": "\"form-d8185874-9f60-4ae9-81be-e0c02ced5d2f-r1\"",
     "activeFormReleaseHead": {
-      "releaseId": null,
-      "releaseHash": null,
-      "artifactId": null,
-      "revision": 1,
-      "etag": "\"form-release-none-r1\"",
-      "legacy": true
+      "releaseId": "84c1ff7a-226e-4ecc-8eb1-5d2e7a20eea8",
+      "releaseHash": "b99fe3c70996371a61362014c6f2f0029f3aa644f941ab7f93e1c9abf1551a82",
+      "artifactId": "form:config-bundle:428f5ffe5fb271a1a31450c0107940af",
+      "revision": 2,
+      "etag": "\"form-release-84c1ff7a-226e-4ecc-8eb1-5d2e7a20eea8-r2\"",
+      "legacy": false
     }
   },
   "indexes": {
     "indexableFields": [],
     "systemIndexes": [],
     "customIndexes": [],
-    "revision": 1,
-    "etag": "\"form-d8185874-9f60-4ae9-81be-e0c02ced5d2f-r1\"",
+    "revision": 2,
+    "etag": "\"form-d8185874-9f60-4ae9-81be-e0c02ced5d2f-r2\"",
     "activeFormReleaseHead": {
-      "releaseId": null,
-      "releaseHash": null,
-      "artifactId": null,
-      "revision": 1,
-      "etag": "\"form-release-none-r1\"",
-      "legacy": true
+      "releaseId": "84c1ff7a-226e-4ecc-8eb1-5d2e7a20eea8",
+      "releaseHash": "b99fe3c70996371a61362014c6f2f0029f3aa644f941ab7f93e1c9abf1551a82",
+      "artifactId": "form:config-bundle:428f5ffe5fb271a1a31450c0107940af",
+      "revision": 2,
+      "etag": "\"form-release-84c1ff7a-226e-4ecc-8eb1-5d2e7a20eea8-r2\"",
+      "legacy": false
     }
   },
   "dataManagement": {
+    "etag": "\"form-d8185874-9f60-4ae9-81be-e0c02ced5d2f-r2\"",
     "value": null,
-    "revision": 1,
-    "etag": "\"form-d8185874-9f60-4ae9-81be-e0c02ced5d2f-r1\"",
+    "revision": 2,
     "activeFormReleaseHead": {
-      "releaseId": null,
-      "releaseHash": null,
-      "artifactId": null,
-      "revision": 1,
-      "etag": "\"form-release-none-r1\"",
-      "legacy": true
+      "releaseId": "84c1ff7a-226e-4ecc-8eb1-5d2e7a20eea8",
+      "releaseHash": "b99fe3c70996371a61362014c6f2f0029f3aa644f941ab7f93e1c9abf1551a82",
+      "artifactId": "form:config-bundle:428f5ffe5fb271a1a31450c0107940af",
+      "revision": 2,
+      "etag": "\"form-release-84c1ff7a-226e-4ecc-8eb1-5d2e7a20eea8-r2\"",
+      "legacy": false
     }
   },
   "publicAccess": {
-    "value": null,
-    "revision": 1,
-    "etag": "\"form-d8185874-9f60-4ae9-81be-e0c02ced5d2f-r1\"",
+    "id": "205c4ad4-3e96-464c-a82f-4d5002e50a68",
+    "tenantId": "001",
+    "type": "form",
+    "identifier": "FORM_4305FA38D1C64C2EB9D45704C314F490",
+    "appType": "APP_DC40389CBE164B18AFAF",
+    "formUuid": "FORM_4305FA38D1C64C2EB9D45704C314F490",
+    "isPublic": true,
+    "description": null,
+    "createdBy": "7b247159-1239-466a-b5b7-7086bf1b8100",
+    "createdAt": "2026-08-21T09:01:17.317Z",
+    "updatedAt": "2026-08-21T09:01:17.317Z",
+    "revision": 2,
+    "etag": "\"form-d8185874-9f60-4ae9-81be-e0c02ced5d2f-r2\"",
     "activeFormReleaseHead": {
-      "releaseId": null,
-      "releaseHash": null,
-      "artifactId": null,
-      "revision": 1,
-      "etag": "\"form-release-none-r1\"",
-      "legacy": true
+      "releaseId": "84c1ff7a-226e-4ecc-8eb1-5d2e7a20eea8",
+      "releaseHash": "b99fe3c70996371a61362014c6f2f0029f3aa644f941ab7f93e1c9abf1551a82",
+      "artifactId": "form:config-bundle:428f5ffe5fb271a1a31450c0107940af",
+      "revision": 2,
+      "etag": "\"form-release-84c1ff7a-226e-4ecc-8eb1-5d2e7a20eea8-r2\"",
+      "legacy": false
     }
   }
 }
