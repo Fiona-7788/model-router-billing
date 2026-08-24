@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Database, ExternalLink, RefreshCw } from "lucide-react";
+import { Database, RefreshCw } from "lucide-react";
 
 const APP_TYPE = "APP_DC40389CBE164B18AFAF";
 const ARCHIVE_FORM_UUID = "FORM_4305FA38D1C64C2EB9D45704C314F490";
@@ -8,10 +8,6 @@ const FUNCTION_URL = `/service/openxiangda-api/v1/apps/${APP_TYPE}/functions/bil
 export function FormManagementPage() {
   const [archiveResult, setArchiveResult] = useState<any>(null);
   const [archiveLoading, setArchiveLoading] = useState(false);
-
-  // 平台原生表单设计器 URL（平台管理台，不是 SPA 路由）
-  const platformFormUrl = `https://yida.wisejob.cn/admin/forms/${ARCHIVE_FORM_UUID}`;
-  const platformFormListUrl = `https://yida.wisejob.cn/admin/forms`;
 
   const runArchiveT2 = async () => {
     setArchiveLoading(true);
@@ -84,25 +80,6 @@ export function FormManagementPage() {
               {archiveLoading ? "归档中..." : "归档 T-2 数据（前天）"}
             </button>
 
-            <a
-              href={platformFormUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-            >
-              <ExternalLink className="w-4 h-4" />
-              打开归档表单
-            </a>
-
-            <a
-              href={platformFormListUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
-            >
-              <ExternalLink className="w-4 h-4" />
-              平台表单列表
-            </a>
           </div>
 
           {archiveResult && (
@@ -133,30 +110,6 @@ export function FormManagementPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-lg font-semibold mb-4">快速链接</h2>
-        <div className="space-y-2">
-          <a
-            href={platformFormUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-          >
-            <div className="font-medium text-gray-900">账单数据归档表单</div>
-            <div className="text-sm text-gray-600 mt-1">直接打开归档表单管理页面</div>
-          </a>
-
-          <a
-            href={platformFormListUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-          >
-            <div className="font-medium text-gray-900">所有表单列表</div>
-            <div className="text-sm text-gray-600 mt-1">查看应用中所有表单</div>
-          </a>
-        </div>
-      </div>
     </div>
   );
 }
