@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "openxiangda-sdd-v2",
+  "changeId": "deploy-t2-archive",
+  "targets": {
+    "forms": [],
+    "pages": [],
+    "functions": ["billing_proxy"],
+    "automations": [],
+    "workflows": [],
+    "jsCodeNodes": [],
+    "resources": true,
+    "runtime": true,
+    "other": []
+  },
+  "changedFiles": [
+    "src/functions/billing_proxy/index.ts",
+    "src/pages/admin/FormManagementPage.tsx"
+  ],
+  "commands": [],
+  "verifiedAt": null,
+  "mainlinePolicy": "publish-from-main-v1"
+}

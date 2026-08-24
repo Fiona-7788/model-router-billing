@@ -21,7 +21,9 @@ export function FormManagementPage() {
       });
       const raw = await response.json();
       const result = raw.output ?? raw.data?.output ?? raw.data?.result ?? raw;
-      setArchiveResult(result);
+      // 归档结果可能嵌套在 data 字段内
+      const data = result?.data ?? result;
+      setArchiveResult({ ...result, ...data });
     } catch (error: any) {
       setArchiveResult({ success: false, error: error.message });
     } finally {
@@ -93,7 +95,7 @@ export function FormManagementPage() {
               <h4 className="font-medium mb-2">
                 {archiveResult.success ? "归档成功" : "归档失败"}
               </h4>
-              {archiveResult.success ? (
+              {(archiveResult.success || archiveResult.data?.success) ? (
                 <div className="text-sm space-y-1">
                   <p><strong>归档日期：</strong>{archiveResult.date}</p>
                   <p><strong>记录数：</strong>{archiveResult.recordCount} 条</p>

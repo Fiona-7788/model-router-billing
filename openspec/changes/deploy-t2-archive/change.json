@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "openxiangda-sdd-v2",
+  "id": "deploy-t2-archive",
+  "title": "部署 T-2 自动归档功能",
+  "level": "L1",
+  "status": "approved",
+  "createdAt": "2026-08-24T02:55:00.000Z",
+  "approvedAt": "2026-08-24T03:12:00.000Z"
+}

@@ -2126,3 +2126,73 @@
 - targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
 - followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
 - user: fengyujing
+## 2026-08-21T09:57:01.535Z
+
+- command: openxiangda resource publish
+- reason: 修复归档存储用data参数+查询从item顶层读取
+- targets: {"forms":[],"pages":[],"functions":["billing_proxy"],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-24T03:09:55.559Z
+
+- command: openxiangda runtime deploy
+- reason: 新增 archiveT2Data action 和前端按钮，支持 T-2 自动归档
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-24T03:10:48.895Z
+
+- command: openxiangda runtime deploy
+- reason: 激活 T-2 归档前端
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-24T03:25:11.668Z
+
+- command: openxiangda resource publish
+- reason: 新增 archiveT2Data action 支持 T-2 自动归档
+- targets: {"forms":[],"pages":[],"functions":["billing_proxy"],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"resourceSelectors":{},"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-24T03:25:35.579Z
+
+- command: openxiangda resource publish
+- reason: 新增 archiveT2Data action 支持 T-2 自动归档
+- targets: {"forms":[],"pages":[],"functions":["billing_proxy"],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"resourceSelectors":{},"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-24T03:26:00.726Z
+
+- command: openxiangda resource publish
+- reason: 新增 archiveT2Data action 支持 T-2 自动归档
+- targets: {"forms":[],"pages":[],"functions":["billing_proxy"],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"resourceSelectors":{},"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-24T03:26:13.649Z
+
+- command: openxiangda resource publish
+- reason: 新增 archiveT2Data action 支持 T-2 自动归档
+- targets: {"forms":[],"pages":[],"functions":["billing_proxy"],"automations":[],"workflows":[],"jsCodeNodes":[],"resources":false,"resourceSelectors":{},"runtime":false,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-24T03:40:44.977Z
+
+- command: openxiangda runtime deploy
+- reason: 清理表单管理页面测试按钮
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-24T03:41:23.830Z
+
+- command: openxiangda runtime deploy
+- reason: 清理表单管理页面测试按钮
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
+## 2026-08-24T03:45:59.596Z
+
+- command: openxiangda runtime deploy
+- reason: 移除表单管理页面无用链接
+- targets: {"forms":[],"pages":[],"resources":false,"runtime":true,"other":[]}
+- followUp: 补齐对应 change 的 evidence.md，并在发布后 archive
+- user: fengyujing
