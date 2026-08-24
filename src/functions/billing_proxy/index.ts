@@ -1294,6 +1294,16 @@ export default async function(ctx: any) {
       case "archiveBillingData":
         result = await archiveBillingData(ctx, params);
         break;
+      case "archiveT2Data": {
+        // 归档 T-2 数据：自动计算前天（今天减 2 天）的日期
+        const now = new Date();
+        const beijingTime = new Date(now.getTime() + 8 * 3600 * 1000);
+        beijingTime.setDate(beijingTime.getDate() - 2);
+        const t2Date = `${beijingTime.getUTCFullYear()}-${String(beijingTime.getUTCMonth() + 1).padStart(2, "0")}-${String(beijingTime.getUTCDate()).padStart(2, "0")}`;
+        console.log(`archiveT2Data: 归档 T-2 日期 = ${t2Date}`);
+        result = await archiveBillingData(ctx, { ...params, date: t2Date, archiveType: params.archiveType || "daily_t2" });
+        break;
+      }
       case "queryLocalBillingData":
         result = await queryLocalBillingData(ctx, params);
         break;
